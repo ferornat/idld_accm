@@ -7,15 +7,8 @@ install.packages("remotes")
 install.packages("tictoc")
 install.packages("repr") # Ésta es para el tamaño de los gráficos
 
-# Para evaluar clasificación contra los clusters reales
-install.packages("clue") # Ésta es para la función de reasignado de etiquetas usando la asignación húngara y hacer CCR
-install.packages("fossil") # Esto es para usar el RI
-install.packages("mclust") # Estp es para usar el ARI
-
 # Trabajamos con la librería de arquetipos. Éstas son algunos links de relevancia:
 install.packages("archetypes") # https://cran.r-project.org/web/packages/archetypes/vignettes/archetypes.pdf
-install.packages("pracma")
-install.packages("mclust")
 
 # Ésta es para hacer las simulaciones con los arquetipos
 install.packages("microbenchmark")
@@ -27,41 +20,31 @@ remotes::install_github("lfernandezpiana/idld")
 remotes::install_github("lfernandezpiana/tcd")
 install.packages("SimilarityMeasures") # Esto es para calcular la distancia de Fréchet
 install.packages("trend")
-# install.packages("maptools") # Esta era en la primera versión de "byers_map"
-# install.packages("ggmap")    # Esta era en la primera versión de "byers_map"
 install.packages("rnaturalearth")
 install.packages("rnaturalearthdata")
 install.packages("mapproj")
 
 # Esta librería es para el clustering de los arquetipos
-# install.packages("ktaucenters") 
-install.packages("stats") # Esta es para hacer K-means
+# install.packages("ktaucenters") # Esto fue para una prueba con clusters robustos.
+install.packages("stats") # Esta es para hacer hclust ward.d2
 
-install.packages("reticulate")
+install.packages("reticulate") # Esta es para interpelar a la distancia de Fréchet implementada en Python
 # py_install("similaritymeasures") # Vamos a usar esta en realidad más adelante,
 # porque la implementación que está en R no funciona bien siempre
+
+install.packages("dotenv") # Esta es para hiddear mis direcciones locales en github
 
 ##############################
 ### Cargamos las librerías ###
 ##############################
 
-library("mvnfast")
-library('dplyr')
+library("dplyr")
 library("tictoc")
-library("cluster")
 library("archetypes") # https://cran.r-project.org/web/packages/archetypes/vignettes/archetypes.pdf
 library("ggplot2")
 library("repr")
-library("clue") # Esto es para hacer CCR
-library("fossil") # Esto es para hacer RI
-library("mclust") # Esto es para hacer el ARI
 
 library("microbenchmark") # Ésto es para hacer las iteraciones de los arquetipos
-
-library("mclust")
-library("mvtnorm") # Esto es para poder usar "rmrnorm".
-
-require('geometry')
 
 # La librería de Lucas y Marcela está albergada en el siguiente repositorio. Allí están tanto los algoritmos de cluster como los de proyecciones de profundidades, bootstrap y demás:
 # https://github.com/lfernandezpiana/idld/tree/master/R
@@ -71,8 +54,6 @@ library("idld") # Librería del algoritmo a ganar
 library("tcd")
 library("trend")
 library("tidyverse")
-# library("maptools") # Esta era en la primera versión de "byers_map"
-# library("ggmap")    # Esta era en la primera versión de "byers_map"
 library("rnaturalearth")
 library("rnaturalearthdata")
 library("mapproj")
@@ -82,38 +63,22 @@ library("SimilarityMeasures")
 library("stats") # Ésta es para el k-means normal, pero también para el Ward.D2
 library("reticulate")
 
-#######################
-### cluster_alloc() ###
-#######################
+library("dotenv")
+library("sessioninfo") # Vamos a chequear versiones de paquetes utilizados
 
-# Lo que vamos a hacer ahora es hacer una comparativa entre la estrategia de clustering actual y la propuesta con arquetipos, 
-# comparando sus tiempos de cómputos y errores de clasificación para algún dataset simulado.
-#
-# Definimos las funciones que utilizamos en ambos casos.
-#
-# Ésta es la función que proponemos con la estrategia del cambio de semilla y la reducción de arquetipos.
-#
-# RECORDAMOS: Nosotros habíamos empezado a armar una función que pusiera una serie detrás de la otra, pero al final usamos la función genérica
-# de cluster_alloc() que trabajábamos previamente en las simulaciones.
+# Vemos las versiones de las librerías que estamos usando
+session_info(pkgs = c("dplyr","tictoc","archetypes","ggplot2",
+                      "repr","microbenchmark","idld","tcd",
+                      "trend","tidyverse","rnaturalearth","rnaturalearthdata",
+                      "mapproj","SimilarityMeasures","stats","reticulate",
+                      "dotenv","sessioninfo"),
+             to_file = TRUE)
 
-# Definimos las distancias. Calculamos la distancia a cada punto y asignamos la mínima
 
-distancia_euclidea_fer <- function(point, hull) {
-  hull_distances = apply(hull, 1, function(hull_point) {
-    sqrt(sum((point - hull_point)^2))
-  })
-  return(min(hull_distances))
-}
+#############################
+### Proceso de clustering ###
+#############################
 
-distancia_mahalanobis_fer <- function(point, hull_points, cov_matrix) {    # Le cambiamos el nombre porque si no nos rompe de arriba
-  cluster_distances = apply(hull_points, 1, function(hull_point) {
-    diff = point - hull_point
-    sqrt(t(diff) %*% solve(cov_matrix) %*% diff)
-  })
-  return(min(cluster_distances))
-}
-
-distancia_frechet_fer <-function(){}
 
 # Vamos a usar la versión de python de SimilarityMeasures
 # https://github.com/cjekel/similarity_measures/blob/master/frechet_distance_recursion_vs_dp.ipynb
@@ -130,27 +95,60 @@ frechet <- import("similaritymeasures")
 ### Estructuramos la base ###
 #############################
 
-# Levantamos los datos
-data_path = "/home/pepino/Desktop/Tesis Maestría Ciencia de Datos - Udesa - 2024/Paper Antártida/winter_traj_ver2.rds"
+# Levantamos los datos. Usamos "winter_traj_ver2.rds". Esto tiene la data de "Byers_2005_2016" con las profundidades ya computadas.
+load_dot_env(file = "config.env")
+data_path <- Sys.getenv("DATA_PATH") # Esto está definido en DATA_PATH
 winter <- readRDS(data_path)
 
-# En particular, hacemos primero un ejercicio con el invierno de 2025
-anio = 7 # 3 es el 2007, 6 es el 2010, 7 es 2011
-# curvas_2005 = winter[[1]]$curves
+# Si quisieramos podríamos bien hacerlo con las siguientes líneas de código adaptadas a nuestras carpetas locales (Código de Lucas Fernández Piana)
+#
+# library(tcd)
+# library(trend)
+# library(tidyverse)
+#
+# ## WINTER and SUMMER CURVES: 
+# # Winter: junio-julio-agosto <-> 6-7-8
+# # Summer: enero-febrero-marzo <-> 1-2-3
+# # Summer2: diciembre-enero-febrero <-> 12-1-2
+# 
+# data_path = "/home/Byers_2005_2016"
+# dirs = list.dirs(path=data_path, full.names = FALSE)
+# dirs = dirs[-1]; dirs = dirs[-13]
+# dirs_length = length(dirs)
+# 
+# # Creamos una lista con las curvas de invierno
+# winter_traj = vector(mode = "list", length = dirs_length)
+# for (d in 1:dirs_length) {
+#   dir_path = paste(data_path, dirs[d], sep="/")
+#   print(dirs[d])
+#   aux = read_hysplit_folder(dir_path)
+#   ids = aux$registry %>% filter(month == 6 | month == 7 | month == 8) %>% select(id)
+#   ids = ids$id
+#   aux_depth = icd(aux$trajectories[ids], beta = 0.8, probs = seq(0.2,0.9,0.01))
+#   winter_traj[[d]] = list(aux$trajectories[ids], aux_depth$depth)
+#   names(winter_traj[[d]]) = c("curves", "depth")
+# }
 
-curvas_2011 = winter[[anio]]$curves
-length(curvas_2011)
-nrow(curvas_2011[[1]])
+#######################
+### Elegimos un año ###
+#######################
+
+# En particular, hacemos primero un ejercicio con el invierno de 2007
+anio = 3 # 3 es el 2007, 6 es el 2010, 7 es 2011
+
+curvas_2007 = winter[[anio]]$curves
+length(curvas_2007) # Son 368 curvas
+nrow(curvas_2007[[1]]) # Para cada curva tenemos 121 ubicaciones
 
 # Reestructuramos para poder usar el procedimiento
 lon_list <- list()
 lat_list <- list()
 
 # Iterar sobre cada curva
-for (i in 1:length(curvas_2011)) {
+for (i in 1:length(curvas_2007)) {
   # Convertir lon y lat en matrices, si no lo son ya
-  lon_list[[i]] <- curvas_2011[[i]]$lon
-  lat_list[[i]] <- curvas_2011[[i]]$lat
+  lon_list[[i]] <- curvas_2007[[i]]$lon
+  lat_list[[i]] <- curvas_2007[[i]]$lat
 }
 
 # Combinar las listas en dataframes
@@ -167,51 +165,91 @@ storage.mode(df_struc) <- "double"
 
 # Nos quedamos con las curvas más profundas
 q_max = which(winter[[anio]]$depth > quantile(winter[[anio]]$depth,0.60)) # 40% más profundo
-df_struc <- df_struc[q_max,] # Nos quedan 92
-nrow(df_struc)
+df_struc <- df_struc[q_max,] 
+nrow(df_struc) # Nos quedan 147 curvas profundas
+
+###########################
+### Buscamos arquetipos ###
+###########################
+
+# Estrategia para evitar la singularidad en los resultados del cálculo de los arquetipos:
+# - Arrancamos con 4 arquetipos.
+# - Si funciona, continuamos con el procedimiento.
+# - Si no funciona, volvemos a intentar con otra semillam, a ver si se soluciona la iteración
+# - Y así sucesivamente n-veces. Si en ninguna de ellas se hallan los arquetipos solicitados, se vuelve a iniciar el procedimiento de la búsqueda de arquetipos con 4 - 1 arquetipos. Se repite todo lo previo, y de no hallarse resultados, se vuelve a inicializar la búsqueda de arquetipos con 4 - 2 arquetipos. Y así, 
+# hasta que en el peor de los casos llegue a un arquetipo, que siempre va a ser calculable.
+
 
 # ESTO LO TENEMOS QUE HACER. EN CASO DE QUE LA MATRIZ NO SEA SINGULAR LE TENEMOS QUE AGREGAR UN POCO DE 
 # RUIDO PORQUE SI NO SE ROMPE LA FUNCIÓN DE SVD() DE ADENTRO DEL PAQUETE.
 
-# Definimos un ruido
-epsilon <- 1e-6
-n_arquetipos <- 6 # Esto puede romper
-
-# Tratamos de hacer archetipos. Si rompe así como viene, vamos a agregar un ruido
-arquetipos_prueba <- tryCatch({
-  # Intento sin ruido
-  arquetipos_prueba <-archetypes(df_struc, k = n_arquetipos)
-}, error = function(e) {
-  message("Error encountered: ", e$message)
-  message("Lo hacemos agregando un ruido")
+retry_archetypes <- function(df, n_arch, seed_arch, max_iter, epsilon = 1e-6) {
+  for (i in 1:max_iter) {
+    set.seed(seed_arch + i)
+    
+    # Probamos primero sin ruido
+    arch <- tryCatch({
+      archetypes(data = df, k = n_arch, verbose = FALSE)
+    }, error = function(e) {
+      return(NULL)  # NULL si hay un error
+    })
+    
+    if (!is.null(arch)) {
+      return(parameters(arch))  # Trae los arquetipos si es exitoso
+    }
+    
+    # Si falla, agrega un ruido
+    message("Error encountered, trying with added noise...")
+    
+    df_noisy <- df + matrix(rnorm(length(df), mean = 0, sd = epsilon), nrow = nrow(df))
+    arch <- tryCatch({
+      archetypes(data = df_noisy, k = n_arch, verbose = FALSE)
+    }, error = function(e) {
+      return(NULL)  # NULL si hay un error
+    })
+    
+    if (!is.null(arch)) {
+      return(parameters(arch))  # Trae los arquetipos si es exitoso
+    }
+    
+    # Si acá falla, prueba la siguiente iteración
+    message("Failed to compute archetypes after adding noise.")
+  }
   
-  # Intento con ruido
-  df_struc_noisy <- df_struc + matrix(rnorm(length(df_struc), mean = 0, sd = epsilon), nrow = nrow(df_struc))
-  arquetipos_prueba <- archetypes(df_struc_noisy, k = n_arquetipos) 
-})
+  return(NULL)  # Return NULL if no successful result after max_iter
+}
+
+
+# Hacemos un loop de arquetipos para, en caso de que a pesar de las iteraciones y el ruido, no encuentre la cantidad deseada,
+# y entonces baje a buscar una cantidad una unidad menor.
+
+for (k in 1:n_arquetipos) {
+  arch <- retry_archetypes(df_struc, n_arch = 6, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+  
+  if (is.null(arch)) {
+    message("Failed to compute archetypes for cluster ", k, " with n_arch = ", n_arch)
+    
+    # Probamos de bajar la cantidad de arquetipos y calcular de nuevo
+    arch <- retry_archetypes(df_cluster, n_arch - 1, seed_arch, max_iter)
+    
+    if (is.null(arch)) {
+      stop("Failed to compute archetypes with reduced number as well.")
+    }
+  }
+  arquetipos_prueba <- arch
+}
+
 
 # OBS: Ojo que acá si le ponemos muchos puede rompernos y quedarnos de nuevo un problema de triangulación.
 # En realidad el problema que estamos resolviendo acá es que queda con problemas de singularidad al momento de comenzar,
 # no es que comienza y luego no llega a converger (eso fue lo que nos pasó con la simulación que estábamos trabajando antes)
 
-# Aquí tenemos que clusterizar los arquetipos
-# https://github.com/cran/ktaucenters
-
-# tic()
-# clusters_arquetipos <- ktaucenters(arquetipos_prueba$archetypes, K = 3, nstart = 1234)
-# toc()
-
-# tic()
-# clusters_arquetipos <- kmeans(arquetipos_prueba$archetypes, centers = 3, nstart = 1234)
-# toc()
-
-# length(clusters_arquetipos$cluster) # Te los clusteriza a los 16, aunque nos vamos a quedar con los centros
-# arquecentros <- clusters_arquetipos$centers
-# colnames(arquecentros) <- colnames(arquetipos_prueba$archetypes) # Actualizamos los nombres de las columnas
-
+#################################
+### Clustering de  arquetipos ###
+#################################
 
 # Volvemos a armar los arquetipos como trayectorias
-arquetipos <- arquetipos_prueba$archetypes
+arquetipos <- arquetipos_prueba
 trayectorias_arquetipicas <- replicate(n_arquetipos, list(), simplify = FALSE)
 
 # Suponemos que ambas tienen tantas longitudes como latitudes, lo cual siempre va a ser cierto en estos casos
@@ -262,15 +300,6 @@ for (j in 2:n_arquetipos) {
 }
 toc()
 
-# 253.447 sec elapsed para 2007, con 10 arquetipos
-# 55.999 para 2007, con 6 arquetipos
-# Con esta implementación en Python vuela. Bajé de 20 segundos a 0.198 !!!!!!!!!!!!!!!!
-
-# Ya verificamos que nos da los mismos valores en los caso que se puede calcular con la función
-# que veníamos utilizando
-# frechet_dist_matrix # Valor de librería nueva
-# Frechet(as.matrix(trayectorias_arquetipicas[[1]]), as.matrix(trayectorias_arquetipicas[[5]])) # Valor de librería vieja
-
 # Lo convertimos en distancia
 frechet_dist_matrix[is.na(frechet_dist_matrix)] <- 0
 frechet_dist_matrix <- as.dist(frechet_dist_matrix)
@@ -306,7 +335,7 @@ byers_map = ggplot() +
 byers_map
 
 length(winter) # Esto es todo invierno, que son 12 años
-length(curvas_2011) # Esto es el caso que tomamos, que tiene 368 trayectorias
+length(curvas_2007) # Esto es el caso que tomamos, que tiene 368 trayectorias
 
 
 # Prueba Manual
@@ -318,9 +347,9 @@ clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
 clust_arc
 
 byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[1]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[2]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[2]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
 byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[3]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[4]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[4]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
 byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[5]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
 byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[6]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
 
@@ -330,7 +359,7 @@ print(byers_map_w)
 # Continuamos con los gráficos de rigor
 
 # Ploteamos
-mapas_path_deep = "/home/pepino/Desktop/Tesis Maestría Ciencia de Datos - Udesa - 2024/Paper Antártida/Archivos de Lucas/mapas/2011/3) Pruebas con clusters/6 archetipos - 2 clusters - 40% deeper - CORREGIDO"
+mapas_path_deep <- Sys.getenv("MAPAS_PATH") # Esto está definido en DATA_PATH
 
 # Esto es para el plot de los datos totales, los datos más profundos y los arquetipos
 tic()
@@ -395,16 +424,6 @@ toc()
 # Ahora debiéramos computarle la distancia de Fréchet a todas las curvas, y clusterizarlas en función de a cual se encuentran
 # más cerca
 
-
-# prueba1 <- as.matrix(winter[[1]]$curves[[29]])
-# prueba2 <- as.matrix(winter[[1]]$curves[[30]])
-# Esto es con "SimilarityMeasures"
-# tic()
-# frechet_distance <- Frechet(prueba1, prueba2)[[1]] # Tarda 18.924 sec.
-# toc()
-# print(frechet_distance) # 5.207116 de distancia. ¿En qué unidad está?
-# frechet_distance[[1]]
-
 gc()
 
 tic()
@@ -444,16 +463,10 @@ for (j in 1:length(winter[[anio]]$curves)) {
 }
 toc()
 
-
-# Para 3 arquetipos tardó 7022.415 sec elapsed. Osea, casi dos horas
-# Para 2 arquetipos tardó 5197.599 sec elapsed
-# Para 6 arquetipos tardó 10486 sec, osea 2.91 horas
-
 # CON LA NUEVA IMPLEMENTACIÓN DE PYTHON TARDÓ 21.908 SEGUNDOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Ploteamos
-mapas_path_deep = "/home/pepino/Desktop/Tesis Maestría Ciencia de Datos - Udesa - 2024/Paper Antártida/Archivos de Lucas/mapas/2011/3) Pruebas con clusters/6 archetipos - 2 clusters - 40% deeper - CORREGIDO"
 
 tic()
 for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 2005
@@ -470,107 +483,3 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   dev.off()
 }
 toc()
-
-
-
-# Tomamos 10 arquetipos cómo mucho
-# Tomamos las distancia de Fréchet entre esos 10 arquetipos
-# Sobre esta matriz de distancia armamos un cluster con Ward 2 (es parecido a K-medias)
-# Nos quedamos con 2 clusters, cada uno formado por pocos arquetipos. Estos van a ser el core cluster del procedimiento general.
-
-
-
-
-
-
-
-
-
-cluster_alloc_fer <- function(X, ld, alpha_q = seq(0.5, 0.9, 0.1), K, distance = "euclidean", n_arch = 3, seed_arch = 9102, max_iter = 10) {
-  d <- dim(X)
-  alpha_length <- length(alpha_q)
-  cluster <- matrix(NA, nrow = d[1], ncol = alpha_length)
-  archetypes <- vector("list", length = K * alpha_length)
-  
-  retry_archetypes <- function(df, n_arch, seed_arch, max_iter) {
-    for (i in 1:max_iter) {
-      set.seed(seed_arch + i)
-      tryCatch({
-        arch <- archetypes(data = df, k = n_arch, verbose = FALSE)
-        return(parameters(arch))  # Return the archetypes if successful
-      }, warning = function(w) {
-        if (grepl("alphas > maxKappa", w$message)) {
-          return(NULL)
-        } else {
-          return(NULL)
-        }
-      }, error = function(e) {
-        return(NULL)
-      })
-    }
-    return(NULL)  # Return NULL if no successful result after max_iter
-  }
-  
-  for (j in 1:alpha_length) {
-    region_index <- which(ld > quantile(ld, alpha_q[j]))
-    others_index <- which(ld <= quantile(ld, alpha_q[j]))
-    
-    if (length(region_index) <= K + 1) {
-      next
-    }
-    
-    # Clustering for the main region
-    region_cluster <- kmeans(X[region_index, ], centers = K)$cluster
-    cluster[region_index, j] <- region_cluster
-    
-    # Compute archetypes for each cluster
-    for (k in 1:K) {
-      df_cluster <- data.frame(X[which(cluster[, j] == k), ])
-      arch <- retry_archetypes(df_cluster, n_arch, seed_arch, max_iter)
-      
-      if (is.null(arch)) {
-        message("Failed to compute archetypes for cluster ", k, " at alpha_q[", j, "] with n_arch = ", n_arch)
-        # Try with one less archetype
-        arch <- retry_archetypes(df_cluster, n_arch - 1, seed_arch, max_iter)
-        
-        if (is.null(arch)) {
-          stop("Failed to compute archetypes with reduced number as well.")
-        }
-      }
-      archetypes[[k + (j - 1) * K]] <- arch
-    }
-    
-    # Assign clusters to remaining observations based on convex hull distances or archetypes
-    for (i in others_index) {
-      min_dist <- Inf
-      closest_cluster <- NA
-      
-      for (k in 1:K) {
-        archetype_point <- archetypes[[k + (j - 1) * K]]
-        
-        if (distance == "euclidean") {
-          dist_to_archetype <- distancia_euclidea_fer(X[i, ], archetype_point)
-        } else if (distance == "mahalanobis") {
-          cluster_points <- X[region_index[region_cluster == k], ]
-          cov_matrix <- var(cluster_points)
-          dist_to_archetype <- distancia_mahalanobis_fer(X[i, ], archetype_point, cov_matrix)
-        } else {
-          stop("Invalid distance parameter")
-        }
-        
-        if (!is.na(dist_to_archetype) && dist_to_archetype < min_dist) {
-          min_dist <- dist_to_archetype
-          closest_cluster <- k
-        }
-      }
-      
-      cluster[i, j] <- closest_cluster
-    }
-  }
-  
-  return(list(cluster = cluster, archetypes = archetypes))
-}
-
-
-
-

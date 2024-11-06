@@ -1,0 +1,5 @@
+# Ignore config file containing sensitive data
+config.env
+Byers_2005_2016-20240921T194305Z-001.zip
+winter_traj_ver2.rds
+*.png
