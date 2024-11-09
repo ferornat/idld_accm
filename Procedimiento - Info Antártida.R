@@ -33,6 +33,7 @@ install.packages("reticulate") # Esta es para interpelar a la distancia de Fréc
 # porque la implementación que está en R no funciona bien siempre
 
 install.packages("dotenv") # Esta es para hiddear mis direcciones locales en github
+install.packages("sessioninfo")
 
 ##############################
 ### Cargamos las librerías ###
@@ -67,12 +68,12 @@ library("dotenv")
 library("sessioninfo") # Vamos a chequear versiones de paquetes utilizados
 
 # Vemos las versiones de las librerías que estamos usando
-session_info(pkgs = c("dplyr","tictoc","archetypes","ggplot2",
-                      "repr","microbenchmark","idld","tcd",
-                      "trend","tidyverse","rnaturalearth","rnaturalearthdata",
-                      "mapproj","SimilarityMeasures","stats","reticulate",
-                      "dotenv","sessioninfo"),
-             to_file = TRUE)
+# session_info(pkgs = c("dplyr","tictoc","archetypes","ggplot2",
+#                       "repr","microbenchmark","idld","tcd",
+#                       "trend","tidyverse","rnaturalearth","rnaturalearthdata",
+#                       "mapproj","SimilarityMeasures","stats","reticulate",
+#                       "dotenv","sessioninfo"),
+#              to_file = TRUE)
 
 
 #############################
@@ -96,7 +97,8 @@ frechet <- import("similaritymeasures")
 #############################
 
 # Levantamos los datos. Usamos "winter_traj_ver2.rds". Esto tiene la data de "Byers_2005_2016" con las profundidades ya computadas.
-load_dot_env(file = "config.env")
+# load_dot_env(file = "config.env") # PC 1: Ubuntu
+load_dot_env(file = "config_mac.env") # PC 2: Mac
 data_path <- Sys.getenv("DATA_PATH") # Esto está definido en DATA_PATH
 winter <- readRDS(data_path)
 
