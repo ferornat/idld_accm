@@ -174,6 +174,8 @@ nrow(df_struc) # Nos quedan 147 curvas profundas
 ### Buscamos arquetipos ###
 ###########################
 
+n_arquetipos = 6
+
 # Estrategia para evitar la singularidad en los resultados del cálculo de los arquetipos:
 # - Arrancamos con 4 arquetipos.
 # - Si funciona, continuamos con el procedimiento.
