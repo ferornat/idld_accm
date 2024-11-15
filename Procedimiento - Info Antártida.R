@@ -97,12 +97,12 @@ frechet <- import("similaritymeasures")
 #############################
 
 # Levantamos los datos. Usamos "winter_traj_ver2.rds". Esto tiene la data de "Byers_2005_2016" con las profundidades ya computadas.
-# load_dot_env(file = "config.env") # PC 1: Ubuntu
-load_dot_env(file = "config_mac.env") # PC 2: Mac
+load_dot_env(file = "config.env") # PC 1: Ubuntu (es necesario estás situado dentro del repositorio como directorio de trabajo)
+# load_dot_env(file = "config_mac.env") # PC 2: Mac (es necesario estás situado dentro del repositorio como directorio de trabajo)
 data_path <- Sys.getenv("DATA_PATH") # Esto está definido en DATA_PATH
 winter <- readRDS(data_path)
 
-# Si quisieramos podríamos bien hacerlo con las siguientes líneas de código adaptadas a nuestras carpetas locales (Código de Lucas Fernández Piana)
+# Si quisieramos, podríamos computar las profundidades locales con las siguientes líneas de código adaptadas a nuestras carpetas locales
 #
 # library(tcd)
 # library(trend)
@@ -177,11 +177,11 @@ nrow(df_struc) # Nos quedan 147 curvas profundas
 n_arquetipos = 6
 
 # Estrategia para evitar la singularidad en los resultados del cálculo de los arquetipos:
-# - Arrancamos con 4 arquetipos.
+# - Arrancamos con 6 arquetipos.
 # - Si funciona, continuamos con el procedimiento.
-# - Si no funciona, volvemos a intentar con otra semillam, a ver si se soluciona la iteración
+# - Si no funciona, volvemos a intentar con otra semilla, a ver si se soluciona la iteración
 # - Y así sucesivamente n-veces. Si en ninguna de ellas se hallan los arquetipos solicitados, se vuelve a iniciar el procedimiento de la búsqueda de arquetipos con 4 - 1 arquetipos. Se repite todo lo previo, y de no hallarse resultados, se vuelve a inicializar la búsqueda de arquetipos con 4 - 2 arquetipos. Y así, 
-# hasta que en el peor de los casos llegue a un arquetipo, que siempre va a ser calculable.
+# hasta que en el peor de los casos llegue a un arquetipo, total esto siempre va a ser calculable.
 
 
 # ESTO LO TENEMOS QUE HACER. EN CASO DE QUE LA MATRIZ NO SEA SINGULAR LE TENEMOS QUE AGREGAR UN POCO DE 
@@ -227,21 +227,21 @@ retry_archetypes <- function(df, n_arch, seed_arch, max_iter, epsilon = 1e-6) {
 # Hacemos un loop de arquetipos para, en caso de que a pesar de las iteraciones y el ruido, no encuentre la cantidad deseada,
 # y entonces baje a buscar una cantidad una unidad menor.
 
-for (k in 1:n_arquetipos) {
-  arch <- retry_archetypes(df_struc, n_arch = 6, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+arch <- retry_archetypes(df_struc, n_arch = 6, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+
+if (is.null(arch)) {
+  message("Failed to compute archetypes with n_arch = 6. Retrying with reduced number of archetypes.")
+  
+  # Retry with reduced number of archetypes
+  arch <- retry_archetypes(df_struc, n_arch = 5, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
   
   if (is.null(arch)) {
-    message("Failed to compute archetypes for cluster ", k, " with n_arch = ", n_arch)
-    
-    # Probamos de bajar la cantidad de arquetipos y calcular de nuevo
-    arch <- retry_archetypes(df_cluster, n_arch - 1, seed_arch, max_iter)
-    
-    if (is.null(arch)) {
-      stop("Failed to compute archetypes with reduced number as well.")
-    }
+    stop("Failed to compute archetypes with reduced number of archetypes as well.")
   }
-  arquetipos_prueba <- arch
 }
+
+# Store the result
+arquetipos_prueba <- arch
 
 
 # OBS: Ojo que acá si le ponemos muchos puede rompernos y quedarnos de nuevo un problema de triangulación.
@@ -487,3 +487,4 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   dev.off()
 }
 toc()
+
