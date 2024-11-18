@@ -504,7 +504,6 @@ toc()
 
 mapas_path_deep <- Sys.getenv("MAPAS_PATH") # Esto está definido en DATA_PATH
 
-tic()
 for(datos_inv in 1:length(winter)){
   # Estructuramos la data
   anio = datos_inv # 3 es el 2007, 6 es el 2010, 7 es 2011
@@ -698,7 +697,7 @@ for(datos_inv in 1:length(winter)){
   # Armamos el plot del año
   for (k in anio:anio) {  
     byers_map_w = byers_map
-    titulo_w = paste0(2005 + k - 1)
+    # titulo_w = paste0(2005 + k - 1) # Queda mejor si le ponemos el año en Latex
     byers_map_w = byers_map_w + ggtitle(titulo_w)
     
     # Add geom_path with color mapping based on closest_archetype
@@ -725,6 +724,3 @@ for(datos_inv in 1:length(winter)){
     dev.off()
   }
 }
-toc()
-
-
