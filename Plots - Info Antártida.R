@@ -32,6 +32,8 @@ install.packages("reticulate") # Esta es para interpelar a la distancia de Fréc
 # py_install("similaritymeasures") # Vamos a usar esta en realidad más adelante,
 # porque la implementación que está en R no funciona bien siempre
 
+install.packages("ggdendro") # Esto es para el dendograma
+
 install.packages("dotenv") # Esta es para hiddear mis direcciones locales en github
 install.packages("sessioninfo")
 
@@ -64,6 +66,8 @@ library("SimilarityMeasures")
 library("stats") # Ésta es para el k-means normal, pero también para el Ward.D2
 library("reticulate")
 
+library("ggdendro")
+
 library("dotenv")
 library("sessioninfo") # Vamos a chequear versiones de paquetes utilizados
 
@@ -72,7 +76,7 @@ library("sessioninfo") # Vamos a chequear versiones de paquetes utilizados
 #                       "repr","microbenchmark","idld","tcd",
 #                       "trend","tidyverse","rnaturalearth","rnaturalearthdata",
 #                       "mapproj","SimilarityMeasures","stats","reticulate",
-#                       "dotenv","sessioninfo"),
+#                       "dotenv","sessioninfo", "ggdendro"),
 #              to_file = TRUE)
 
 
@@ -102,34 +106,6 @@ load_dot_env(file = "config.env") # PC 1: Ubuntu (es necesario estás situado de
 data_path <- Sys.getenv("DATA_PATH") # Esto está definido en DATA_PATH
 winter <- readRDS(data_path)
 
-# Si quisieramos, podríamos computar las profundidades locales con las siguientes líneas de código adaptadas a nuestras carpetas locales
-#
-# library(tcd)
-# library(trend)
-# library(tidyverse)
-#
-# ## WINTER and SUMMER CURVES: 
-# # Winter: junio-julio-agosto <-> 6-7-8
-# # Summer: enero-febrero-marzo <-> 1-2-3
-# # Summer2: diciembre-enero-febrero <-> 12-1-2
-# 
-# data_path = "/home/Byers_2005_2016"
-# dirs = list.dirs(path=data_path, full.names = FALSE)
-# dirs = dirs[-1]; dirs = dirs[-13]
-# dirs_length = length(dirs)
-# 
-# # Creamos una lista con las curvas de invierno
-# winter_traj = vector(mode = "list", length = dirs_length)
-# for (d in 1:dirs_length) {
-#   dir_path = paste(data_path, dirs[d], sep="/")
-#   print(dirs[d])
-#   aux = read_hysplit_folder(dir_path)
-#   ids = aux$registry %>% filter(month == 6 | month == 7 | month == 8) %>% select(id)
-#   ids = ids$id
-#   aux_depth = icd(aux$trajectories[ids], beta = 0.8, probs = seq(0.2,0.9,0.01))
-#   winter_traj[[d]] = list(aux$trajectories[ids], aux_depth$depth)
-#   names(winter_traj[[d]]) = c("curves", "depth")
-# }
 
 #######################
 ### Elegimos un año ###
@@ -182,10 +158,6 @@ n_arquetipos = 6
 # - Si no funciona, volvemos a intentar con otra semilla, a ver si se soluciona la iteración
 # - Y así sucesivamente n-veces. Si en ninguna de ellas se hallan los arquetipos solicitados, se vuelve a iniciar el procedimiento de la búsqueda de arquetipos con 4 - 1 arquetipos. Se repite todo lo previo, y de no hallarse resultados, se vuelve a inicializar la búsqueda de arquetipos con 4 - 2 arquetipos. Y así, 
 # hasta que en el peor de los casos llegue a un arquetipo, total esto siempre va a ser calculable.
-
-
-# ESTO LO TENEMOS QUE HACER. EN CASO DE QUE LA MATRIZ NO SEA SINGULAR LE TENEMOS QUE AGREGAR UN POCO DE 
-# RUIDO PORQUE SI NO SE ROMPE LA FUNCIÓN DE SVD() DE ADENTRO DEL PAQUETE.
 
 retry_archetypes <- function(df, n_arch, seed_arch, max_iter, epsilon = 1e-6) {
   for (i in 1:max_iter) {
@@ -243,10 +215,6 @@ if (is.null(arch)) {
 # Store the result
 arquetipos_prueba <- arch
 
-
-# OBS: Ojo que acá si le ponemos muchos puede rompernos y quedarnos de nuevo un problema de triangulación.
-# En realidad el problema que estamos resolviendo acá es que queda con problemas de singularidad al momento de comenzar,
-# no es que comienza y luego no llega a converger (eso fue lo que nos pasó con la simulación que estábamos trabajando antes)
 
 #################################
 ### Clustering de  arquetipos ###
@@ -308,15 +276,27 @@ toc()
 frechet_dist_matrix[is.na(frechet_dist_matrix)] <- 0
 frechet_dist_matrix <- as.dist(frechet_dist_matrix)
 
-dendograma = hclust(frechet_dist_matrix, method = "ward.D2", members = NULL)
-plot(dendograma, main = "Dendrograma de ward.D2 sobre la matriz de distancia de Fréchet", hang = -1)
+# Perform hierarchical clustering
+dendograma <- hclust(frechet_dist_matrix, method = "ward.D2", members = NULL)
 
-# Cortamos el dendograma para hacer los clusters
-clusters <- cutree(dendograma, k = 2)
-print(clusters)
-rect.hclust(dendograma, k = 2, border = "red")
+par(mar = c(5, 5, 4, 2))  # Adjust the margins for better space
+plot(dendograma, 
+     main = "Fréchet-Clusters de Arquetipos", 
+     hang = -1, 
+     xlab = "Arquetipos", 
+     ylab = "Alturas", 
+     sub = "",
+     axes = FALSE,           # Suppress default axes
+     cex.main = 2,           # Title size
+     cex.lab = 1.5,          # Axis labels size
+     cex.axis = 1.2,         # Axis tick labels size
+     cex = 1.5)              # Leaf label values size
 
-### Ploteamos a ver si tiene sentido
+# Add custom axis if needed (optional)
+axis(side = 2)  # Add y-axis (Height)
+
+# Primer plot: Año 2007 - Dendograma
+rect.hclust(dendograma, k = 2, border = "red") # Modifico el tamaño al momento de bajarlo. Va a ser 800 x 800
 
 # Armamos la proyección con las referencias para el mapa
 wm <- map_data("world")
@@ -336,89 +316,111 @@ byers_map = ggplot() +
   coord_map("ortho", orientation = c(-90, -60, 0), xlim=c(-180,-10), ylim=c(-30,-90)) +
   labs(x = NULL, y = NULL)
 
-byers_map
+###########################
+### Plots de las curvas ###
+###########################
 
-length(winter) # Esto es todo invierno, que son 12 años
-length(curvas_2007) # Esto es el caso que tomamos, que tiene 368 trayectorias
-
-
-# Prueba Manual
-titulo_w = paste0("Probamos - para borrar")
-
-byers_map_w = byers_map + ggtitle(titulo_w)
-n_arc = length(trayectorias_arquetipicas)
-clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
-clust_arc
-
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[1]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[2]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[3]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[4]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[5]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[6]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-
-byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
-print(byers_map_w)
-
-# Continuamos con los gráficos de rigor
-
-# Ploteamos
 mapas_path_deep <- Sys.getenv("MAPAS_PATH") # Esto está definido en DATA_PATH
 
-# Esto es para el plot de los datos totales, los datos más profundos y los arquetipos
+
+# Segundo plot: Año 2007 - Totalidad de los datos, datos más profundos y sus arquetipos
 tic()
-for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 
-  titulo_w = paste0("Prueba de arquetipos al 40% - ", 2005+k-1)
-  byers_map_w = byers_map + ggtitle(titulo_w)
-  q_max = which(winter[[k]]$depth > quantile(winter[[k]]$depth,0.60)) # el n% más profundo
-  q_resto = which(winter[[k]]$depth <= quantile(winter[[k]]$depth,0.60)) # El resto
-  n_arc = length(trayectorias_arquetipicas)
-  clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
+for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 2007
+  titulo_w <- paste0("Trayectorias, Profundidades y Arquetipos")
+  byers_map_w <- byers_map + ggtitle(titulo_w)
+  
+  q_max <- which(winter[[k]]$depth > quantile(winter[[k]]$depth, 0.60)) # El n% más profundo
+  q_resto <- which(winter[[k]]$depth <= quantile(winter[[k]]$depth, 0.60)) # El resto
+  n_arc <- length(trayectorias_arquetipicas)
   
   # Curvas menos profundas
-  for (j in q_resto) 
-    byers_map_w = byers_map_w + geom_path(data = winter[[k]]$curves[[j]], aes(x=lon, y=lat), color="lightgrey", alpha = 0.5)
+  for (j in q_resto) {
+    curve <- winter[[k]]$curves[[j]]
+    curve$group <- "Menos profundas"
+    byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
+  }
   
   # Curvas más profundas
-  for (i in q_max)
-    byers_map_w = byers_map_w + geom_path(data = winter[[k]]$curves[[i]], aes(x=lon, y=lat), color = "darkred", alpha = 0.5)
+  for (i in q_max) {
+    curve <- winter[[k]]$curves[[i]]
+    curve$group <- "Más profundas"
+    byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
+  }
   
-  # Esto es para el plot con todos los arquetipos con el mismo color
-  for (i in 1:n_arc)
-   byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[i]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
+  # Trayectorias arquetípicas
+  for (l in 1:n_arc) {
+    curve <- trayectorias_arquetipicas[[l]]
+    curve$group <- "Arquetipos"
+    byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
+  }
   
+  # Apply the custom color scale and legend
+  byers_map_w <- byers_map_w + 
+    scale_color_manual(values = c(
+      "Menos profundas" = "lightgrey", 
+      "Más profundas" = "red", 
+      "Arquetipos" = "black"
+    )) +
+    theme(
+      plot.title = element_text(size = 40, face = "bold"),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 30),
+      legend.position = "right"
+    )
   
-  byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
-  
+  # Save the plot
   setwd(mapas_path_deep)
-  png(filename=paste0(2005+k-1,"_depth.png"), width=800, height=800)
+  png(filename = paste0(2005 + k - 1, "_depth_arc.png"), width = 800, height = 800)
   print(byers_map_w)
   dev.off()
 }
 toc()
 
-# Esto es para ver los colores de los clusters del arquetipo
+# Tercer plot: Año 2007 - Totalidad de los datos y los arquetipos con sus respectivos clusters
 tic()
-for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 
-  titulo_w = paste0("Prueba de arquetipos al 40% - ", 2005+k-1)
-  byers_map_w = byers_map + ggtitle(titulo_w)
-  q_max = which(winter[[k]]$depth > quantile(winter[[k]]$depth,0.60)) # el n% más profundo
-  q_resto = which(winter[[k]]$depth <= quantile(winter[[k]]$depth,0.60)) # El resto
-  n_arc = length(trayectorias_arquetipicas)
-  clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
+for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 2007
+  titulo_w <- paste0("Arquetipos por clusters")
+  byers_map_w <- byers_map + ggtitle(titulo_w)
+  n_arc <- length(trayectorias_arquetipicas)
+  clusters = cutree(dendograma, k = 2)
+  renom_clusters = paste0("Cluster ", clusters)  # Assuming 'clusters' are your cluster identifiers
   
-  # Curvas menos profundas
-  for (j in q_resto) 
-    byers_map_w = byers_map_w + geom_path(data = winter[[k]]$curves[[j]], aes(x=lon, y=lat), color="lightgrey", alpha = 0.5)
+  # Curvas totales
+  for (j in 1:length(winter[[k]]$curves)) {
+    curve <- winter[[k]]$curves[[j]]
+    curve$group <- "Curvas totales"  # Ensure 'group' is a column in the data
+    byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
+  }
   
-  # Esto es para tener a cada arquetipo con los colores del cluster
-  for (i in 1:n_arc)
-   byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[i]], aes(x=lon, y=lat), color = clust_arc[i] , alpha = 0.5)
+  # Archetypes with cluster names in the legend
+  for (l in 1:n_arc) {
+    curve <- trayectorias_arquetipicas[[l]]
+    curve$group <- "Arquetipo"  # Ensure 'group' is a column in the data
+    curve$cluster <- renom_clusters[l]  # Assign cluster names instead of numeric values
+    
+    # Add paths for each archetype, colored by its cluster name
+    byers_map_w <- byers_map_w + 
+      geom_path(data = curve, aes(x = lon, y = lat, color = as.factor(cluster)), alpha = 0.7)
+  }
   
-  byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
+  # Apply custom color scale and legend for archetypes based on cluster names
+  byers_map_w <- byers_map_w + 
+    scale_color_manual(values = c(
+      "Curvas totales" = "lightgrey", 
+      "Arquetipo" = "black",  # Set a default color for archetypes if needed
+      "Cluster 1" = "darkred", 
+      "Cluster 2" = "darkgreen"
+    )) +
+    theme(
+      plot.title = element_text(size = 40, face = "bold"),
+      legend.title = element_blank(),
+      legend.text = element_text(size = 30),
+      legend.position = "right"
+    )
   
+  # Save the plot
   setwd(mapas_path_deep)
-  png(filename=paste0(2005+k-1,"_arc_para_cluster.png"), width=800, height=800)
+  png(filename = paste0(2005 + k - 1, "_total_arc.png"), width = 800, height = 800)
   print(byers_map_w)
   dev.off()
 }
@@ -467,22 +469,35 @@ for (j in 1:length(winter[[anio]]$curves)) {
 }
 toc()
 
-# CON LA NUEVA IMPLEMENTACIÓN DE PYTHON TARDÓ 21.908 SEGUNDOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-# Ploteamos
+# Cuarto plot: Año 2007 - Asignación de clusters final
 
 tic()
-for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 
+for (k in anio:anio) {  # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 2007
   byers_map_w = byers_map
-  titulo_w = paste0("Prueba de clusters al 40% - ", 2005+k-1)
+  titulo_w = paste0("Asignación Final")
   byers_map_w = byers_map_w + ggtitle(titulo_w)
-  for (i in 1:length(winter[[k]]$curves))
-    byers_map_w = byers_map_w + geom_path(data=winter[[k]]$curves[[i]], aes(x = lon, y = lat, ), color = as.factor(closest_archetype[i]),  alpha=0.5)
-  byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
   
+  # Add geom_path with color mapping based on closest_archetype
+  for (i in 1:length(winter[[k]]$curves)) {
+    byers_map_w = byers_map_w + 
+      geom_path(data = winter[[k]]$curves[[i]], 
+                aes(x = lon, y = lat), 
+                color = ifelse(closest_archetype[i] == 1, "darkred", 
+                               ifelse(closest_archetype[i] == 2, "darkgreen", "grey")), 
+                alpha = 0.5)
+  }
+  
+  # Apply title and theme
+  byers_map_w = byers_map_w + 
+    theme(
+      plot.title = element_text(size = 40, face = "bold"),
+      legend.text = element_text(size = 30)
+    )
+  
+  # Save the plot
   setwd(mapas_path_deep)
-  png(filename=paste0(2005+k-1,"_cluster.png"), width=800, height=800)
+  png(filename = paste0(2005 + k - 1, "_asignacion_cluster_final.png"), width = 800, height = 800)
   print(byers_map_w)
   dev.off()
 }

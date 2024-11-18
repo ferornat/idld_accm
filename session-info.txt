@@ -1,6 +1,6 @@
-─ Session info ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+─ Session info ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  setting  value
- version  R version 4.4.1 (2024-06-14)
+ version  R version 4.4.2 (2024-10-31)
  os       Ubuntu 22.04.5 LTS
  system   x86_64, linux-gnu
  ui       RStudio
@@ -8,11 +8,11 @@
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/Argentina/Buenos_Aires
- date     2024-11-05
+ date     2024-11-17
  rstudio  2024.09.0+375 Cranberry Hibiscus (desktop)
  pandoc   2.9.2.1 @ /usr/bin/pandoc
 
-─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+─ Packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
  package            * version   date (UTC) lib source
  abind                1.4-5     2016-07-21 [3] CRAN (R 4.0.1)
  archetypes         * 2.2-0.1   2019-04-22 [1] CRAN (R 4.4.1)
@@ -35,7 +35,7 @@
  classInt             0.4-3     2020-04-07 [3] CRAN (R 4.0.1)
  cli                  3.6.3     2024-06-21 [1] CRAN (R 4.4.1)
  clipr                0.8.0     2022-02-22 [3] CRAN (R 4.1.2)
- cluster            * 2.1.6     2023-12-01 [4] CRAN (R 4.3.2)
+ cluster              2.1.6     2023-12-01 [4] CRAN (R 4.3.2)
  colorspace           2.1-0     2023-01-23 [1] CRAN (R 4.4.1)
  conflicted           1.2.0     2023-02-01 [1] CRAN (R 4.4.1)
  cpp11                0.4.2     2021-11-30 [3] CRAN (R 4.1.2)
@@ -62,6 +62,7 @@
  fs                   1.5.2     2021-12-08 [3] CRAN (R 4.1.2)
  gargle               1.5.2     2023-07-20 [1] CRAN (R 4.4.1)
  generics             0.1.2     2022-01-31 [3] CRAN (R 4.1.2)
+ ggdendro           * 0.2.0     2024-02-23 [1] CRAN (R 4.4.2)
  ggplot2            * 3.5.1     2024-04-23 [1] CRAN (R 4.4.1)
  glue                 1.7.0     2024-01-09 [1] CRAN (R 4.4.1)
  googledrive          2.1.1     2023-06-11 [1] CRAN (R 4.4.1)
@@ -183,7 +184,13 @@
  [3] /usr/lib/R/site-library
  [4] /usr/lib/R/library
 
-─ Python configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────
- Python is not available
+─ Python configuration ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ python:         /home/pepino/.virtualenvs/r-reticulate/bin/python
+ libpython:      /usr/lib/python3.10/config-3.10-x86_64-linux-gnu/libpython3.10.so
+ pythonhome:     /home/pepino/.virtualenvs/r-reticulate:/home/pepino/.virtualenvs/r-reticulate
+ version:        3.10.12 (main, Sep 11 2024, 15:47:36) [GCC 11.4.0]
+ numpy:          /home/pepino/.virtualenvs/r-reticulate/lib/python3.10/site-packages/numpy
+ numpy_version:  2.1.2
+ similaritymeasures:/home/pepino/.virtualenvs/r-reticulate/lib/python3.10/site-packages/similaritymeasures
 
-───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
