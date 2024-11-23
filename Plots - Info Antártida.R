@@ -698,7 +698,7 @@ for(datos_inv in 1:length(winter)){
   for (k in anio:anio) {  
     byers_map_w = byers_map
     # titulo_w = paste0(2005 + k - 1) # Queda mejor si le ponemos el año en Latex
-    byers_map_w = byers_map_w + ggtitle(titulo_w)
+    byers_map_w = byers_map_w # + ggtitle(titulo_w)
     
     # Add geom_path with color mapping based on closest_archetype
     for (i in 1:length(winter[[k]]$curves)) {
