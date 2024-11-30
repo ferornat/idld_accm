@@ -269,14 +269,16 @@ ggplot(results, aes(x = Archetypes, y = Time, color = as.factor(SampleSize))) +
 # Vemos arquetipos computables
 ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computables`, y = factor(SampleSize))) +
   geom_bar(stat = "identity", aes(fill = factor(SampleSize))) +
-  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra") +
+  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra", fill = "# Muestra") +
   theme_minimal() +
   scale_x_continuous(breaks = 0:8) +  # Define los valores del eje X
   theme(
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
     axis.text = element_text(size = 14),
-    legend.position = "none"  # Elimina la leyenda
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14)
+    # legend.position = "none"  # Elimina la leyenda
   )
 
 ## Ahora vamos a modificar la cantidad de dimensiones, dejando la cantidad de observaciones fija en 300
@@ -354,6 +356,8 @@ ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computa
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
     axis.text = element_text(size = 14),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
     # legend.position = "none"  # Elimina la leyenda
   )
 
@@ -399,6 +403,7 @@ for (dims in dimensions_list) {
 # Ahora tarda ~8.61 segundos.
 toc()
 
+results
 # Graficamos los resultados
 options(warn = -1) # Silenciamos además los warnings
 options(repr.plot.width = 25, repr.plot.height = 8)
@@ -406,8 +411,8 @@ options(repr.plot.width = 25, repr.plot.height = 8)
 ggplot(results, aes(x = Dimensions, y = Time)) +
   geom_line(size = 1.5) +  # Increase line thickness
   geom_point(size = 3) +   # Increase point size
-  labs(title = "Tiempo de Cómputo para Diferentes Cantidades de Dimensiones y Arquetipos",
-       x = "Cantidad de Dimensiones (d), con cantidad Arquetipos fija (d+1)",
+  labs(title = "Heurística 1",
+       x = "Cantidad de Dimensiones (d)",
        y = "Tiempo de Cómputo (segundos)") +
   theme_minimal() +
   theme(
@@ -443,8 +448,8 @@ options(repr.plot.width = 25, repr.plot.height = 8)
 ggplot(results, aes(x = Dimensions, y = Time)) +
   geom_line(size = 1.5) +  # Increase line thickness
   geom_point(size = 3) +   # Increase point size
-  labs(title = "Tiempo de Cómputo para Diferentes Cantidades de Dimensiones y Arquetipos",
-       x = "Cantidad de Dimensiones (d), con cantidad Arquetipos fija (3)",
+  labs(title = "Heurística 2",
+       x = "Cantidad de Dimensiones (d)",
        y = "Tiempo de Cómputo (segundos)") +
   theme_minimal() +
   theme(
@@ -568,16 +573,17 @@ for (n in sample_sizes) {
 }
 toc()
 
+
 # Vemos los resultados
 options(warn = -1) # Silenciamos además los warnings
 options(repr.plot.width = 25, repr.plot.height = 8)
 
-ggplot(results, aes(x = arc_deseados, y = arc_obtenidos)) +
+ggplot(results, aes(x = arc_deseados, y = tiempo)) +
   geom_line(size = 1.5) +  # Increase line thickness
   geom_point(size = 3) +   # Increase point size
-  labs(title = "Arquetipos Deseados vs Obtenidos",
+  labs(title = "Heurística 3",
        x = "Cantidad de Arquetipos Deseados",
-       y = "Cantidad de Arquetipos Obtenidos") +
+       y = "Tiempo de Cómputo (segundos)") +
   theme_minimal() +
   theme(
     plot.title = element_text(size = 20, face = "bold"),
@@ -1116,6 +1122,27 @@ results
 # 9  Dataset  18000    fer 0.9099782 0.7978114    6.28738475 Dataset  18000
 # 10 Dataset  18000 lucmar 0.9566967 0.9026260  297.80853844 Dataset  18000
 
+# Create the dataset
+results <- data.frame(
+  Dataset = c("Dataset 300", "Dataset 300", "Dataset 900", "Dataset 900", 
+              "Dataset 3000", "Dataset 3000", "Dataset 9000", "Dataset 9000", 
+              "Dataset 18000", "Dataset 18000"),
+  Method = c("fer", "lucmar", "fer", "lucmar", "fer", "lucmar", "fer", "lucmar", "fer", "lucmar"),
+  RI = c(0.9311260, 0.9395987, 0.9391843, 0.9459177, 0.9340465, 0.9448214, 
+         0.9288728, 0.9544236, 0.9099782, 0.9566967),
+  ARI = c(0.8448292, 0.8638254, 0.8631642, 0.8782419, 0.8518516, 0.8759981, 
+          0.8402979, 0.8975275, 0.7978114, 0.9026260),
+  ExecutionTime = c(0.09111452, 0.07613993, 0.27689409, 0.66091466, 
+                    0.57539916, 7.75903654, 0.97625661, 69.22658205, 
+                    6.28738475, 297.80853844),
+  Muestra = c("Dataset 300", "Dataset 300", "Dataset 900", "Dataset 900", 
+              "Dataset 3000", "Dataset 3000", "Dataset 9000", "Dataset 9000", 
+              "Dataset 18000", "Dataset 18000")
+)
+
+# Reemplamos los nombre de los métodos
+results$Method <- ifelse(results$Method == "fer", "ACCM", "CC")
+
 # Modificamos para poder hacer los plots
 results$Muestra <- factor(results$Dataset, levels = unique(results$Dataset))
 names(results)[names(results) == 'Method'] <- 'Estrategia'
@@ -1128,20 +1155,26 @@ names(results)[names(results) == 'Method'] <- 'Estrategia'
 options(warn = -1) # Silenciamos además los warnings
 options(repr.plot.width = 25, repr.plot.height = 8)
 
+# plot.title = element_text(size = 20, face = "bold"),
+# axis.title = element_text(size = 16),
+# axis.text = element_text(size = 14),
+# legend.title = element_text(size = 16),
+# legend.text = element_text(size = 14)
+
 # Crear el gráfico de barras con etiquetas del mismo color que las barras
 ggplot(results, aes(x = Muestra, y = RI, fill = Estrategia)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   geom_text(aes(label = round(RI, 3), color = Estrategia),
             position = position_dodge(width = 0.9),
-            vjust = -0.5, size = 3.5) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
-  labs(title = "Comparación de Rand Indexes", y = "Rand Index") +
+            vjust = -0.5, size = 6) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
+  labs(title = "Rand Indexes (RI)", y = "Rand Index") +
   theme_minimal() +
   theme(
     panel.grid.major = element_blank(),  # Elimina la cuadrícula principal
     panel.grid.minor = element_blank(),  # Elimina la cuadrícula menor
     axis.line = element_line(color = "black"),  # Añade líneas de eje
     text = element_text(size = 16),  # Aumenta el tamaño del texto en general
-    axis.title = element_text(size = 18),  # Aumenta el tamaño del título de los ejes
+    axis.title = element_text(size = 16),  # Aumenta el tamaño del título de los ejes
     axis.text = element_text(size = 14),  # Aumenta el tamaño del texto de los ejes
     legend.text = element_text(size = 14),  # Aumenta el tamaño del texto de la leyenda
     legend.title = element_text(size = 16),  # Aumenta el tamaño del título de la leyenda
@@ -1159,15 +1192,15 @@ ggplot(results, aes(x = Muestra, y = RI, fill = Estrategia)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.9)) +
   geom_text(aes(label = round(ARI, 3), color = Estrategia),
             position = position_dodge(width = 0.9),
-            vjust = -0.5, size = 3.5) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
-  labs(title = "Comparación de Adjusted Rand Indexes", y = "Adjusted Rand Index") +
+            vjust = -0.5, size = 5) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
+  labs(title = "Adjusted Rand Indexes (ARI)", y = "Adjusted Rand Index") +
   theme_minimal() +
   theme(
     panel.grid.major = element_blank(),  # Elimina la cuadrícula principal
     panel.grid.minor = element_blank(),  # Elimina la cuadrícula menor
     axis.line = element_line(color = "black"),  # Añade líneas de eje
     text = element_text(size = 16),  # Aumenta el tamaño del texto en general
-    axis.title = element_text(size = 18),  # Aumenta el tamaño del título de los ejes
+    axis.title = element_text(size = 16),  # Aumenta el tamaño del título de los ejes
     axis.text = element_text(size = 14),  # Aumenta el tamaño del texto de los ejes
     legend.text = element_text(size = 14),  # Aumenta el tamaño del texto de la leyenda
     legend.title = element_text(size = 16),  # Aumenta el tamaño del título de la leyenda
@@ -1183,7 +1216,7 @@ options(repr.plot.width = 25, repr.plot.height = 8)
 ggplot(results, aes(x = Muestra, y = ExecutionTime, color = Estrategia, group = Estrategia)) +
   geom_line(linewidth = 1.2) +  # Ajusta el grosor de las líneas
   geom_point(size = 3) +       # Ajusta el tamaño de los puntos
-  labs(title = "Comparación del Tiempo de Ejecución",
+  labs(title = "Tiempos de Ejecución",
        x = "Tamaño del Dataset",
        y = "Tiempo de Ejecución (segundos)") +
   theme_minimal() +           # Aplica un tema minimalista
@@ -1192,7 +1225,7 @@ ggplot(results, aes(x = Muestra, y = ExecutionTime, color = Estrategia, group = 
     panel.grid.minor = element_blank(),  # Elimina la cuadrícula menor
     axis.line = element_line(color = "black"),  # Añade líneas de eje
     text = element_text(size = 16),  # Aumenta el tamaño del texto en general
-    axis.title = element_text(size = 18),  # Aumenta el tamaño del título de los ejes
+    axis.title = element_text(size = 16),  # Aumenta el tamaño del título de los ejes
     axis.text = element_text(size = 14),  # Aumenta el tamaño del texto de los ejes
     legend.text = element_text(size = 14),  # Aumenta el tamaño del texto de la leyenda
     legend.title = element_text(size = 16),  # Aumenta el tamaño del título de la leyenda
