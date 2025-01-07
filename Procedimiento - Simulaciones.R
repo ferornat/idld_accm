@@ -246,40 +246,56 @@ arch_computables <- results %>%
 # tiempo
 
 # Graficamos los resultados
-options(warn = -1) # Silenciamos además los warnings
-options(repr.plot.width = 25, repr.plot.height = 8)
+# options(warn = -1) # Silenciamos además los warnings
+# options(repr.plot.width = 25, repr.plot.height = 8)
+# 
+# ggplot(results, aes(x = Archetypes, y = Time, color = as.factor(SampleSize))) +
+#   geom_line(size = 1.5) +  # Increase line thickness
+#   geom_point(size = 3) +   # Increase point size
+#   labs(title = "Distintos Tamaños",
+#        x = "Cantidad de Arquetipos",
+#        y = "Tiempo de Cómputo (segundos)",
+#        color = "# Muestra") +
+#   coord_cartesian(xlim = c(2, 8)) +
+#   theme_minimal() +
+#   theme(
+#     plot.title = element_text(size = 20, face = "bold"),
+#     axis.title = element_text(size = 16),
+#     axis.text = element_text(size = 14),
+#     legend.title = element_text(size = 16),
+#     legend.text = element_text(size = 14)
+#   )
+# 
+# # Vemos arquetipos computables
+# ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computables`, y = factor(SampleSize))) +
+#   geom_bar(stat = "identity", aes(fill = factor(SampleSize))) +
+#   labs(x = "Arquetipos Computables", y = "Tamaño de la muestra", fill = "# Muestra") +
+#   theme_minimal() +
+#   scale_x_continuous(breaks = 0:8) +  # Define los valores del eje X
+#   theme(
+#     plot.title = element_text(size = 20, face = "bold"),
+#     axis.title = element_text(size = 16),
+#     axis.text = element_text(size = 14),
+#     legend.title = element_text(size = 16),
+#     legend.text = element_text(size = 14)
+#     # legend.position = "none"  # Elimina la leyenda
+#   )
 
-ggplot(results, aes(x = Archetypes, y = Time, color = as.factor(SampleSize))) +
-  geom_line(size = 1.5) +  # Increase line thickness
-  geom_point(size = 3) +   # Increase point size
-  labs(title = "Distintos Tamaños",
-       x = "Cantidad de Arquetipos",
-       y = "Tiempo de Cómputo (segundos)",
-       color = "# Muestra") +
-  coord_cartesian(xlim = c(2, 8)) +
+# Nos quedamos con la versión que vamos a poner. Va a ser 800x800
+ggplot(arch_computables, aes(x = `Máximo de Arquetipos Computables`, y = factor(SampleSize))) +
+  geom_bar(stat = "identity", aes(fill = SampleSize)) +  # Map SampleSize to fill
+  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra bivariada") +  # No legend label
+  scale_x_continuous(breaks = 0:8) +  # Define values for x-axis
+  scale_fill_continuous(low = "grey", high = "darkred")+  # Smooth gradient
   theme_minimal() +
   theme(
+    panel.grid = element_blank(),  # Remove gridlines
+    legend.position = "none",  # Remove the legend
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14)
+    axis.text = element_text(size = 14)
   )
 
-# Vemos arquetipos computables
-ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computables`, y = factor(SampleSize))) +
-  geom_bar(stat = "identity", aes(fill = factor(SampleSize))) +
-  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra", fill = "# Muestra") +
-  theme_minimal() +
-  scale_x_continuous(breaks = 0:8) +  # Define los valores del eje X
-  theme(
-    plot.title = element_text(size = 20, face = "bold"),
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14)
-    # legend.position = "none"  # Elimina la leyenda
-  )
 
 ## Ahora vamos a modificar la cantidad de dimensiones, dejando la cantidad de observaciones fija en 300
 
@@ -325,40 +341,57 @@ arch_computables <- results %>%
   filter(!is.na(Time)) %>%
   summarize("Máximo de Arquetipos Computables" = max(Archetypes, na.rm = TRUE))
 
-# Graficamos los resultados
-options(warn = -1) # Silenciamos además los warnings
-options(repr.plot.width = 25, repr.plot.height = 8)
+# # Graficamos los resultados
+# options(warn = -1) # Silenciamos además los warnings
+# options(repr.plot.width = 25, repr.plot.height = 8)
+# 
+# ggplot(results, aes(x = Archetypes, y = Time, color = as.factor(Dimensions))) +
+#   geom_line() +
+#   geom_point() +
+#   labs(title = "Distintas Dimensiones",
+#        x = "Cantidad de Arquetipos",
+#        y = "Tiempo de Cómputo (segundos)",
+#        color = "# Dim") +
+#   theme_minimal() +
+#   scale_x_continuous(breaks = 0:17) +  # Define los valores del eje X
+#   theme(
+#     plot.title = element_text(size = 20, face = "bold"),
+#     axis.title = element_text(size = 16),
+#     axis.text = element_text(size = 14),
+#     legend.title = element_text(size = 16),
+#     legend.text = element_text(size = 14)
+#   )
+# 
+# # Vemos arquetipos computables
+# ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computables`, y = factor(Dimensions))) +
+#   geom_bar(stat = "identity", aes(fill = factor(Dimensions))) +
+#   labs(x = "Arquetipos Computables", y = "Dimensiones en la muestra", fill = "# Dim") +
+#   theme_minimal() +
+#   scale_x_continuous(breaks = 0:17) +  # Define los valores del eje X
+#   theme(
+#     plot.title = element_text(size = 20, face = "bold"),
+#     axis.title = element_text(size = 16),
+#     axis.text = element_text(size = 14),
+#     legend.title = element_text(size = 16),
+#     legend.text = element_text(size = 14),
+#     # legend.position = "none"  # Elimina la leyenda
+#   )
 
-ggplot(results, aes(x = Archetypes, y = Time, color = as.factor(Dimensions))) +
-  geom_line() +
-  geom_point() +
-  labs(title = "Distintas Dimensiones",
-       x = "Cantidad de Arquetipos",
-       y = "Tiempo de Cómputo (segundos)",
-       color = "# Dim") +
+
+# Dejamos la versión del plot que vamos a poner. Es 800x800
+
+ggplot(arch_computables, aes(x = `Máximo de Arquetipos Computables`, y = factor(Dimensions))) +
+  geom_bar(stat = "identity", aes(fill = Dimensions)) +
+  labs(x = "Arquetipos Computables", y = "Dimensiones en la muestra de 300 observaciones") +
+  scale_x_continuous(breaks = 0:17) +  # Define valores del eje X
+  scale_fill_continuous(low = "grey", high = "darkred") +  # Smooth gradient
   theme_minimal() +
-  scale_x_continuous(breaks = 0:17) +  # Define los valores del eje X
   theme(
+    panel.grid = element_blank(),  # Remove gridlines
+    legend.position = "none",  # Remove legend
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14)
-  )
-
-# Vemos arquetipos computables
-ggplot(arch_computables, aes(x = arch_computables$`Máximo de Arquetipos Computables`, y = factor(Dimensions))) +
-  geom_bar(stat = "identity", aes(fill = factor(Dimensions))) +
-  labs(x = "Arquetipos Computables", y = "Dimensiones en la muestra", fill = "# Dim") +
-  theme_minimal() +
-  scale_x_continuous(breaks = 0:17) +  # Define los valores del eje X
-  theme(
-    plot.title = element_text(size = 20, face = "bold"),
-    axis.title = element_text(size = 16),
-    axis.text = element_text(size = 14),
-    legend.title = element_text(size = 16),
-    legend.text = element_text(size = 14),
-    # legend.position = "none"  # Elimina la leyenda
+    axis.text = element_text(size = 14)
   )
 
 # Vemos que en muchos casos, al tratarse de un procedimiento que detrás está computando inversa de matrices, cuando llegamos a 
