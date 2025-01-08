@@ -284,18 +284,18 @@ arch_computables <- results %>%
 # Nos quedamos con la versión que vamos a poner. Va a ser 800x800
 ggplot(arch_computables, aes(x = `Máximo de Arquetipos Computables`, y = factor(SampleSize))) +
   geom_bar(stat = "identity", aes(fill = SampleSize)) +  # Map SampleSize to fill
-  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra bivariada") +  # No legend label
-  scale_x_continuous(breaks = 0:8) +  # Define values for x-axis
+  labs(x = "Arquetipos Computables", y = "Tamaño de la muestra bivariada", fill = "# Muestra") +  
+  scale_fill_viridis_c(option = "plasma", direction = -1) +
   scale_fill_continuous(low = "grey", high = "darkred")+  # Smooth gradient
   theme_minimal() +
   theme(
     panel.grid = element_blank(),  # Remove gridlines
-    legend.position = "none",  # Remove the legend
+    panel.grid.minor = element_blank(),
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
+    legend.title = element_text(size = 16),
     axis.text = element_text(size = 14)
   )
-
 
 ## Ahora vamos a modificar la cantidad de dimensiones, dejando la cantidad de observaciones fija en 300
 
@@ -379,18 +379,18 @@ arch_computables <- results %>%
 
 
 # Dejamos la versión del plot que vamos a poner. Es 800x800
-
 ggplot(arch_computables, aes(x = `Máximo de Arquetipos Computables`, y = factor(Dimensions))) +
   geom_bar(stat = "identity", aes(fill = Dimensions)) +
-  labs(x = "Arquetipos Computables", y = "Dimensiones en la muestra de 300 observaciones") +
+  labs(x = "Arquetipos Computables", y = "Dimensiones en la muestra de 300 observaciones", fill = "# Dim") +
   scale_x_continuous(breaks = 0:17) +  # Define valores del eje X
   scale_fill_continuous(low = "grey", high = "darkred") +  # Smooth gradient
   theme_minimal() +
   theme(
     panel.grid = element_blank(),  # Remove gridlines
-    legend.position = "none",  # Remove legend
+    # legend.position = "none",  # Remove legend
     plot.title = element_text(size = 20, face = "bold"),
     axis.title = element_text(size = 16),
+    legend.title = element_text(size = 16),
     axis.text = element_text(size = 14)
   )
 
@@ -1155,6 +1155,8 @@ results
 # 9  Dataset  18000    fer 0.9099782 0.7978114    6.28738475 Dataset  18000
 # 10 Dataset  18000 lucmar 0.9566967 0.9026260  297.80853844 Dataset  18000
 
+(297.80853844 / 6.28738475 - 1)*100 # Ésto es el crecimiento en tiempo de ejecución que se especifica en la tesis
+
 # Create the dataset
 results <- data.frame(
   Dataset = c("Dataset 300", "Dataset 300", "Dataset 900", "Dataset 900", 
@@ -1200,7 +1202,7 @@ ggplot(results, aes(x = Muestra, y = RI, fill = Estrategia)) +
   geom_text(aes(label = round(RI, 3), color = Estrategia),
             position = position_dodge(width = 0.9),
             vjust = -0.5, size = 6) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
-  labs(title = "Rand Indexes (RI)", y = "Rand Index") +
+  labs(title = "Rand Indexes (RI)", y = "Rand Index", x = '') +
   theme_minimal() +
   theme(
     panel.grid.major = element_blank(),  # Elimina la cuadrícula principal
@@ -1226,7 +1228,7 @@ ggplot(results, aes(x = Muestra, y = RI, fill = Estrategia)) +
   geom_text(aes(label = round(ARI, 3), color = Estrategia),
             position = position_dodge(width = 0.9),
             vjust = -0.5, size = 5) +  # Ajusta vjust para la posición vertical y size para el tamaño del texto
-  labs(title = "Adjusted Rand Indexes (ARI)", y = "Adjusted Rand Index") +
+  labs(title = "Adjusted Rand Indexes (ARI)", y = "Adjusted Rand Index", x = '') +
   theme_minimal() +
   theme(
     panel.grid.major = element_blank(),  # Elimina la cuadrícula principal
@@ -1239,7 +1241,7 @@ ggplot(results, aes(x = Muestra, y = RI, fill = Estrategia)) +
     legend.title = element_text(size = 16),  # Aumenta el tamaño del título de la leyenda
     plot.title = element_text(size = 20, face = "bold", hjust = 0.5)  # Aumenta el tamaño del título del gráfico
   ) +
-  coord_cartesian(ylim = c(0.70, 1.0))  # Establece el límite del eje y en 0.70 a 1.0
+  coord_cartesian(ylim = c(0.85, 1.0))  # Establece el límite del eje y en 0.70 a 1.0
 
 
 # Comparamos los tiempos de ejecución
@@ -1250,7 +1252,7 @@ ggplot(results, aes(x = Muestra, y = ExecutionTime, color = Estrategia, group = 
   geom_line(linewidth = 1.2) +  # Ajusta el grosor de las líneas
   geom_point(size = 3) +       # Ajusta el tamaño de los puntos
   labs(title = "Tiempos de Ejecución",
-       x = "Tamaño del Dataset",
+       x = "",
        y = "Tiempo de Ejecución (segundos)") +
   theme_minimal() +           # Aplica un tema minimalista
   theme(
