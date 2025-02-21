@@ -62,6 +62,7 @@ library("SimilarityMeasures")
 
 # library("ktaucenters") # Esta librería es para el clustering de los arquetipos
 library("stats") # Ésta es para el k-means normal, pero también para el Ward.D2
+library("cluster") # Ésta es para hacer el PAM
 library("reticulate")
 
 library("dotenv")
@@ -170,10 +171,123 @@ q_max = which(winter[[anio]]$depth > quantile(winter[[anio]]$depth,0.60)) # 40% 
 df_struc <- df_struc[q_max,] 
 nrow(df_struc) # Nos quedan 147 curvas profundas
 
-##################################################################################
-### Este breve apartado hace el camino inverso. Primero encuentra arquetipos y ###
-### después clusteriza.                                                        ###
-##################################################################################
+##########################################################################################
+### Aquí sería el camino correcto. Es decir, primero la instancia de los core-clusters ###
+### y luego el cálculo de los arquetipos.                                              ###
+##########################################################################################
+
+#########################################
+### Calculamos la matriz de distancia ###
+#########################################
+
+n_deep_curves <- nrow(df_struc)
+
+# Hay que poner las matrices en el formato original de trayectorias para poder calcular las distancias
+trayectorias_orig <- replicate(n_deep_curves, list(), simplify = FALSE)
+
+# Suponemos que ambas tienen tantas longitudes como latitudes, lo cual siempre va a ser cierto en estos casos
+for(cant in 1:n_deep_curves) {
+  trayectorias_orig[[cant]] <- df_struc[cant, ]
+}
+
+for (i in 1:n_deep_curves) {
+  # Extraemos las listas
+  current_list <- trayectorias_orig[[i]]
+  
+  # Obtenemos longitud de las mismas
+  n <- length(current_list)
+  
+  # Partimos en dos la cantidad de columnas
+  lon_values <- as.numeric(current_list[1:(n/2)])  
+  lat_values <- as.numeric(current_list[(n/2 + 1):n]) 
+  
+  # Creamos las trayectorias como las teníamos inicialmente
+  trayectorias_orig[[i]] <- data.frame(lon = round(lon_values,3), lat = round(lat_values,3)) # Esto es para que nos quede en la misma precisión que lo que venía en el .RDS
+}
+
+# Esto nos queda como lo que levantábamos inicialmente del .RDS
+trayectorias_orig[[1]]
+head(df_struc) # Chequeamos que las curvas nos queden bien
+
+# Inicializamos la matriz de distancias de Fréchet vacía. ACA TUVIMOS QUE MODIFICAR LA DISTANCIA DE FRÉCHET
+# Vamos a primero generar todas las distancias entre las curvas pero utilizando Fréchet.
+
+frechet_tot_dist_matrix <- matrix(NA, n_deep_curves, n_deep_curves)
+
+tic()
+# Vamos a hacer las distancias, pero únicamente las que están debajo de la diagonal
+for (j in 2:n_deep_curves) {
+  for (i in 1:(j - 1)) {
+    # Hacemos los pares de trayectorias
+    traj_i <- as.matrix(trayectorias_orig[[i]])
+    traj_j <- as.matrix(trayectorias_orig[[j]])
+    
+    # Computamos las distancias
+    dist_ij <- frechet$frechet_dist(traj_i, traj_j)
+    frechet_tot_dist_matrix[j, i] <- dist_ij
+  }
+}
+toc() # Ésto tarda 61.462 segundos
+
+
+# Lo convertimos en distancia para poder hacer los clusters
+frechet_tot_dist_matrix[is.na(frechet_tot_dist_matrix)] <- 0
+frechet_tot_dist_matrix <- as.dist(frechet_tot_dist_matrix)
+
+#####################################
+### Calculamos ahora los clusters ###
+#####################################
+
+cantidad_clusters <- 2
+pam_result <- pam(frechet_tot_dist_matrix, cantidad_clusters)
+clusters <- pam_result$clustering
+length(pam_result$clustering) # Son las 147 curvas
+
+########################################################
+### Ploteamos las curvas con los colores del cluster ###
+########################################################
+
+# Armamos la proyección con las referencias para el mapa
+titulo_w <- "Probamos - para borrar"
+byers_map_w <- byers_map + ggtitle(titulo_w)
+
+# Cuantiles más profundos
+q_max <- which(winter[[anio]]$depth > quantile(winter[[anio]]$depth, 0.60))  # Deepest curves
+q_resto <- which(winter[[anio]]$depth <= quantile(winter[[anio]]$depth, 0.60))  # The rest
+
+# Ploteamos las cruvas menos profundas
+for (j in q_resto) {
+  byers_map_w <- byers_map_w + geom_path(
+    data = winter[[anio]]$curves[[j]], aes(x = lon, y = lat),
+    color = "lightgrey", alpha = 0.5
+  )
+}
+
+# Agregamos las curvas más profundas
+for (i in q_max){
+  byers_map_w = byers_map_w + geom_path(data = winter[[anio]]$curves[[i]], aes(x=lon, y=lat), color = "darkgrey", alpha = 0.5)
+}
+
+# Agregamos los clusters. Recordemos que era los df_struc, pero reconfiguradas como trayectorias
+# df_struc <- df_struc[q_max,] 
+# Después las llamamos "trayectorias_orig"
+
+for (color_cluster in 1:length(clusters)) {
+  cluster_color <- ifelse(clusters[color_cluster] == 1, "darkred", "darkgreen")
+  byers_map_w = byers_map_w + geom_path(data = trayectorias_orig[[color_cluster]], aes(x = lon, y = lat), color = cluster_color, alpha = 0.5)
+}
+
+byers_map_w <- byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
+byers_map_w
+
+
+# Tendríamos que sacar 3 arquetipos por cluster y después hacer la asignación al cluster más
+# cercano
+
+# ESTUVIMOS HASTA ACÁ
+
+
+
 
 
 ###########################
