@@ -280,21 +280,11 @@ for (color_cluster in 1:length(clusters)) {
 byers_map_w <- byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
 byers_map_w
 
+#########################################################
+### Ahora vamos a sacar 3 arquetipos para cada grupo ###
+#########################################################
 
-# Tendríamos que sacar 3 arquetipos por cluster y después hacer la asignación al cluster más
-# cercano
-
-# ESTUVIMOS HASTA ACÁ
-
-
-
-
-
-###########################
-### Buscamos arquetipos ###
-###########################
-
-n_arquetipos = 6
+n_arquetipos = 3
 
 # Estrategia para evitar la singularidad en los resultados del cálculo de los arquetipos:
 # - Arrancamos con 6 arquetipos.
@@ -347,94 +337,124 @@ retry_archetypes <- function(df, n_arch, seed_arch, max_iter, epsilon = 1e-6) {
 # Hacemos un loop de arquetipos para, en caso de que a pesar de las iteraciones y el ruido, no encuentre la cantidad deseada,
 # y entonces baje a buscar una cantidad una unidad menor.
 
-arch <- retry_archetypes(df_struc, n_arch = 6, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+# Nos quedamos con los sujetos del grupo 1 y 2 por separado
+grupo1 <- trayectorias_orig[clusters == 1]
+grupo2 <- trayectorias_orig[clusters == 2]
+length(grupo1) + length(grupo2) # Esto me debe dar los 147 con los que venía trabajando
 
-if (is.null(arch)) {
-  message("Failed to compute archetypes with n_arch = 6. Retrying with reduced number of archetypes.")
+# Obtenemos los arquetipos para cada grupo. Para esto vamos a tener que retransformar las columnas
+# y demás
+
+# Grupo 1
+lon_list_g1 <- list()
+lat_list_g1 <- list()
+
+# Iterar sobre cada curva
+for (i in 1:length(grupo1)) {
+  # Convertir lon y lat en matrices, si no lo son ya
+  lon_list_g1[[i]] <- grupo1[[i]]$lon
+  lat_list_g1[[i]] <- grupo1[[i]]$lat
+}
+
+# Combinar las listas en dataframes
+lon_df_g1 <- do.call(rbind, lon_list_g1)
+lat_df_g1 <- do.call(rbind, lat_list_g1)
+
+# Crear el dataframe estructurado y renombrar las columnas
+df_struc_g1 <- data.frame(lon_df_g1, lat_df_g1) 
+colnames(df_struc_g1) <- c(paste0("lon_", 1:ncol(lon_df_g1)), paste0("lat_", 1:ncol(lat_df_g1)))
+
+# Hay que verlo como matriz y ponerlo en formato "double"
+df_struc_g1 <- as.matrix(df_struc_g1) # Tenemos las 368
+storage.mode(df_struc_g1) <- "double"
+
+# Obtenemos los arquetipos 
+arch_g1 <- retry_archetypes(df_struc_g1, n_arch = 3, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+
+if (is.null(arch_g1)) {
+  message("Failed to compute archetypes with n_arch = 3. Retrying with reduced number of archetypes.")
   
   # Retry with reduced number of archetypes
-  arch <- retry_archetypes(df_struc, n_arch = 5, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+  arch_g1 <- retry_archetypes(df_struc_g1, n_arch = 2, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
   
-  if (is.null(arch)) {
+  if (is.null(arch_g1)) {
     stop("Failed to compute archetypes with reduced number of archetypes as well.")
   }
 }
 
-# Guardamos el resultado
-arquetipos_prueba <- arch
+# Finalmente tenemos los arquetipos para el grupo 1. En este caso obtuvimos los 3 arquetipos
+arch_g1
 
+# Grupo 1
+lon_list_g2 <- list()
+lat_list_g2 <- list()
 
-# OBS: Ojo que acá si le ponemos muchos puede rompernos y quedarnos de nuevo un problema de triangulación.
-# En realidad el problema que estamos resolviendo acá es que queda con problemas de singularidad al momento de comenzar,
-# no es que comienza y luego no llega a converger (eso fue lo que nos pasó con la simulación que estábamos trabajando antes)
-
-#################################
-### Clustering de  arquetipos ###
-#################################
-
-# Volvemos a armar los arquetipos como trayectorias
-arquetipos <- arquetipos_prueba
-trayectorias_arquetipicas <- replicate(n_arquetipos, list(), simplify = FALSE)
-
-# Suponemos que ambas tienen tantas longitudes como latitudes, lo cual siempre va a ser cierto en estos casos
-for(cant in 1:n_arquetipos) {
- trayectorias_arquetipicas[[cant]] <- arquetipos[cant, ]
+# Iterar sobre cada curva
+for (i in 1:length(grupo2)) {
+  # Convertir lon y lat en matrices, si no lo son ya
+  lon_list_g2[[i]] <- grupo2[[i]]$lon
+  lat_list_g2[[i]] <- grupo2[[i]]$lat
 }
 
-for (i in 1:n_arquetipos) {
- # Extraemos las listas
- current_list <- trayectorias_arquetipicas[[i]]
+# Combinar las listas en dataframes
+lon_df_g2 <- do.call(rbind, lon_list_g2)
+lat_df_g2 <- do.call(rbind, lat_list_g2)
+
+# Crear el dataframe estructurado y renombrar las columnas
+df_struc_g2 <- data.frame(lon_df_g2, lat_df_g2) 
+colnames(df_struc_g2) <- c(paste0("lon_", 1:ncol(lon_df_g2)), paste0("lat_", 1:ncol(lat_df_g2)))
+
+# Hay que verlo como matriz y ponerlo en formato "double"
+df_struc_g2 <- as.matrix(df_struc_g2) # Tenemos las 368
+storage.mode(df_struc_g2) <- "double"
+
+# Obtenemos los arquetipos 
+arch_g2 <- retry_archetypes(df_struc_g2, n_arch = 3, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+
+if (is.null(arch_g2)) {
+  message("Failed to compute archetypes with n_arch = 3. Retrying with reduced number of archetypes.")
   
- # Obtenemos longitud de las mismas
- n <- length(current_list)
+  # Retry with reduced number of archetypes
+  arch_g2 <- retry_archetypes(df_struc_g2, n_arch = 2, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
   
-# Partimos en dos la cantidad de columnas
- lon_values <- as.numeric(current_list[1:(n/2)])  
- lat_values <- as.numeric(current_list[(n/2 + 1):n]) 
-  
-# Creamos las trayectorias como las teníamos inicialmente
- trayectorias_arquetipicas[[i]] <- data.frame(lon = round(lon_values,3), lat = round(lat_values,3)) # Esto es para que nos quede en la misma precisión que lo que venía en el .RDS
- }
-
-# Esto nos queda como lo que levantábamos inicialmente del .RDS
-trayectorias_arquetipicas
-
-# ANTES DE CLUSTERIZAR VAMOS A NECESITAR ARMAR LA MATRIZ DE DISTANCIAS DE FRÉCHET
-class(trayectorias_arquetipicas)
-length(trayectorias_arquetipicas)
-
-# El cálculo de la matriz puede llevar algún tiempo
-# https://cran.r-project.org/web/packages/SimilarityMeasures/SimilarityMeasures.pdf
-
-# Inicializamos la matriz de distancias de Fréchet vacía. ACA TUVIMOS QUE MODIFICAR LA DISTANCIA DE FRÉCHET
-frechet_dist_matrix <- matrix(NA, n_arquetipos, n_arquetipos)
-
-tic()
-# Vamos a hacer las distancias, pero únicamente las que están debajo de la diagonal
-for (j in 2:n_arquetipos) {
-  for (i in 1:(j - 1)) {
-    # Hacemos los pares de trayectorias
-    traj_i <- as.matrix(trayectorias_arquetipicas[[i]])
-    traj_j <- as.matrix(trayectorias_arquetipicas[[j]])
-    
-    # Computamos las distancias
-    dist_ij <- frechet$frechet_dist(traj_i, traj_j)
-    frechet_dist_matrix[j, i] <- dist_ij
+  if (is.null(arch_g2)) {
+    stop("Failed to compute archetypes with reduced number of archetypes as well.")
   }
 }
-toc()
 
-# Lo convertimos en distancia
-frechet_dist_matrix[is.na(frechet_dist_matrix)] <- 0
-frechet_dist_matrix <- as.dist(frechet_dist_matrix)
+# Finalmente tenemos los arquetipos para este grupo. En este caso pudimos obtener 2 arquetipos
+arch_g2
 
-dendograma = hclust(frechet_dist_matrix, method = "ward.D2", members = NULL)
-plot(dendograma, main = "Dendrograma de ward.D2 sobre la matriz de distancia de Fréchet", hang = -1)
+# Agrupamos los arquetipos y lo estructuramos
+arch_g1g2 <- rbind(arch_g1, arch_g2) 
+n_arch_g1g2_curves <- nrow(arch_g1g2)
 
-# Cortamos el dendograma para hacer los clusters
-clusters <- cutree(dendograma, k = 2)
-print(clusters)
-rect.hclust(dendograma, k = 2, border = "red")
+# Hay que poner las matrices en el formato original de trayectorias para poder calcular las distancias
+trayectorias_g1g2 <- replicate(n_arch_g1g2_curves, list(), simplify = FALSE)
+
+# Suponemos que ambas tienen tantas longitudes como latitudes, lo cual siempre va a ser cierto en estos casos
+for(cant in 1:n_arch_g1g2_curves) {
+  trayectorias_g1g2[[cant]] <- arch_g1g2[cant, ]
+}
+
+for (i in 1:n_arch_g1g2_curves) {
+  # Extraemos las listas
+  current_list_g1g2 <- trayectorias_g1g2[[i]]
+  
+  # Obtenemos longitud de las mismas
+  n_g1g2 <- length(current_list_g1g2)
+  
+  # Partimos en dos la cantidad de columnas
+  lon_values_g1g2 <- as.numeric(current_list_g1g2[1:(n_g1g2/2)])  
+  lat_values_g1g2 <- as.numeric(current_list_g1g2[(n_g1g2/2 + 1):n_g1g2]) 
+  
+  # Creamos las trayectorias como las teníamos inicialmente
+  trayectorias_g1g2[[i]] <- data.frame(lon = round(lon_values_g1g2,3), lat = round(lat_values_g1g2,3)) # Esto es para que nos quede en la misma precisión que lo que venía en el .RDS
+}
+
+# Esto nos queda como lo que levantábamos inicialmente del .RDS
+trayectorias_g1g2[[1]]
+head(arch_g1g2,1)
 
 ### Ploteamos a ver si tiene sentido
 
@@ -461,22 +481,31 @@ byers_map
 length(winter) # Esto es todo invierno, que son 12 años
 length(curvas_2007) # Esto es el caso que tomamos, que tiene 368 trayectorias
 
-
 # Prueba Manual
 titulo_w = paste0("Probamos - para borrar")
 
 byers_map_w = byers_map + ggtitle(titulo_w)
-n_arc = length(trayectorias_arquetipicas)
-clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
-clust_arc
 
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[1]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[2]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[3]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[4]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[5]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
-byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[6]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
+# Ploteamos las cruvas menos profundas
+for (j in q_resto) {
+  byers_map_w <- byers_map_w + geom_path(
+    data = winter[[anio]]$curves[[j]], aes(x = lon, y = lat),
+    color = "lightgrey", alpha = 0.5
+  )
+}
 
+# Agregamos las curvas más profundas
+for (i in q_max){
+  byers_map_w = byers_map_w + geom_path(data = winter[[anio]]$curves[[i]], aes(x=lon, y=lat), color = "darkgrey", alpha = 0.5)
+}
+
+
+# Agregamos los arquetipos de cada cluster
+byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[1]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[2]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[3]], aes(x=lon, y=lat), color="darkred", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[4]], aes(x=lon, y=lat), color="darkgreen", alpha = 0.5)
+byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[5]], aes(x=lon, y=lat), color="darkgreen", alpha = 0.5)
 byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
 print(byers_map_w)
 
@@ -492,7 +521,7 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   byers_map_w = byers_map + ggtitle(titulo_w)
   q_max = which(winter[[k]]$depth > quantile(winter[[k]]$depth,0.60)) # el n% más profundo
   q_resto = which(winter[[k]]$depth <= quantile(winter[[k]]$depth,0.60)) # El resto
-  n_arc = length(trayectorias_arquetipicas)
+  n_arc = length(trayectorias_g1g2)
   clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
   
   # Curvas menos profundas
@@ -501,11 +530,11 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   
   # Curvas más profundas
   for (i in q_max)
-    byers_map_w = byers_map_w + geom_path(data = winter[[k]]$curves[[i]], aes(x=lon, y=lat), color = "darkred", alpha = 0.5)
+    byers_map_w = byers_map_w + geom_path(data = winter[[k]]$curves[[i]], aes(x=lon, y=lat), color = "red", alpha = 0.5)
   
   # Esto es para el plot con todos los arquetipos con el mismo color
   for (i in 1:n_arc)
-   byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[i]], aes(x=lon, y=lat), color="darkblue", alpha = 0.5)
+   byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[i]], aes(x=lon, y=lat), color="black", alpha = 0.5)
   
   
   byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
@@ -524,7 +553,7 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   byers_map_w = byers_map + ggtitle(titulo_w)
   q_max = which(winter[[k]]$depth > quantile(winter[[k]]$depth,0.60)) # el n% más profundo
   q_resto = which(winter[[k]]$depth <= quantile(winter[[k]]$depth,0.60)) # El resto
-  n_arc = length(trayectorias_arquetipicas)
+  n_arc = length(trayectorias_g1g2)
   clust_arc = clusters # Van a ser los colores de los clusters del arquetipo
   
   # Curvas menos profundas
@@ -533,7 +562,7 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   
   # Esto es para tener a cada arquetipo con los colores del cluster
   for (i in 1:n_arc)
-   byers_map_w = byers_map_w + geom_path(data = trayectorias_arquetipicas[[i]], aes(x=lon, y=lat), color = clust_arc[i] , alpha = 0.5)
+   byers_map_w = byers_map_w + geom_path(data = trayectorias_g1g2[[i]], aes(x=lon, y=lat), color = clust_arc[i] , alpha = 0.5)
   
   byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
   
@@ -553,7 +582,7 @@ gc()
 tic()
 # Inicializamos el vector donde vamos a guardar el arquetipo más cercano a la curva
 closest_archetype <- numeric(length(winter[[anio]]$curves))
-clust_archetypes <- clusters # Esto viene de arriba, de hacer un cluster jerárquico sobre la matriz de distancia de Fréchet
+clust_archetypes <- c(rep(1,nrow(arch_g1)), rep(2,nrow(arch_g2))) # Esto viene de arriba, de cuando obtuvimos la base con las trayectorias
 
 # Hacemos el Loop para todas las trayectorias del año
 for (j in 1:length(winter[[anio]]$curves)) {
@@ -561,12 +590,12 @@ for (j in 1:length(winter[[anio]]$curves)) {
   current_curve <- as.matrix(winter[[anio]]$curves[[j]])
   
   # Hacemos la listas a donde va a ir cada distancia respecto a cada arquetipo vis-à-vis
-  distances <- numeric(length(trayectorias_arquetipicas))
+  distances <- numeric(length(trayectorias_g1g2))
   
   # Loopeamos a través de todos las trayectorias arquetipo que tengamos previamente calculadas
-  for (i in 1:length(trayectorias_arquetipicas)) {
+  for (i in 1:length(trayectorias_g1g2)) {
     # Exctraemos la i-ésimo trayectoria arquetipo
-    archetype_curve <- as.matrix(trayectorias_arquetipicas[[i]])
+    archetype_curve <- as.matrix(trayectorias_g1g2[[i]])
     
     # Computamos la distancia de Fréchet
     # distances[i] <- Frechet(current_curve, archetype_curve)[[1]] # Esto era con la implementación vieja
@@ -587,7 +616,7 @@ for (j in 1:length(winter[[anio]]$curves)) {
 }
 toc()
 
-# CON LA NUEVA IMPLEMENTACIÓN DE PYTHON TARDÓ 21.908 SEGUNDOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# CON LA NUEVA IMPLEMENTACIÓN DE PYTHON TARDÓ 10.425 SEGUNDOS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 # Ploteamos
@@ -595,16 +624,24 @@ toc()
 tic()
 for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que haga el año 
   byers_map_w = byers_map
-  titulo_w = paste0("Prueba de clusters al 40% - ", 2005+k-1)
+  titulo_w = paste0("Prueba de clusters al 40% - ", 2005 + k - 1)
   byers_map_w = byers_map_w + ggtitle(titulo_w)
-  for (i in 1:length(winter[[k]]$curves))
-    byers_map_w = byers_map_w + geom_path(data=winter[[k]]$curves[[i]], aes(x = lon, y = lat, ), color = as.factor(closest_archetype[i]),  alpha=0.5)
+  
+  for (i in 1:length(winter[[k]]$curves)) {
+    # Asignamos el color en función del cluster
+    color_cluster <- ifelse(closest_archetype[i] == 1, "darkgreen", "darkred")
+    
+    byers_map_w = byers_map_w + geom_path(
+      data = winter[[k]]$curves[[i]], aes(x = lon, y = lat), 
+      color = color_cluster, alpha = 0.5
+    )
+  }
+  
   byers_map_w = byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
   
   setwd(mapas_path_deep)
-  png(filename=paste0(2005+k-1,"_cluster.png"), width=800, height=800)
+  png(filename = paste0(2005 + k - 1, "_cluster.png"), width = 800, height = 800)
   print(byers_map_w)
   dev.off()
 }
 toc()
-
