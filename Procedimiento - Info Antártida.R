@@ -248,7 +248,27 @@ length(pam_result$clustering) # Son las 147 curvas
 ########################################################
 
 # Armamos la proyección con las referencias para el mapa
-titulo_w <- "Probamos - para borrar"
+wm <- map_data("world")
+
+byers_map = ggplot() +
+  geom_polygon(
+    data = wm, aes(x = long, y = lat, group = group),
+    fill = "white", colour = "black", alpha = 0.8, size=0.3
+  ) +
+  scale_y_continuous(
+    limits = c(-90, -30), breaks = seq(-45, -90, by = -10),
+    labels = NULL, expand = c(0, 0)
+  ) +
+  scale_x_continuous(breaks = NULL, expand = c(0, 0)) +
+  theme(panel.background = element_rect(fill = "white"),
+        axis.ticks=element_blank()) +
+  coord_map("ortho", orientation = c(-90, -60, 0), xlim=c(-180,-10), ylim=c(-30,-90)) +
+  labs(x = NULL, y = NULL)
+
+byers_map
+
+# Armamos la proyección con las referencias para el mapa
+titulo_w <- "Año 2007 - Clusters en profundidad"
 byers_map_w <- byers_map + ggtitle(titulo_w)
 
 # Cuantiles más profundos
@@ -280,9 +300,9 @@ for (color_cluster in 1:length(clusters)) {
 byers_map_w <- byers_map_w + theme(plot.title = element_text(size = 30, face = "bold"))
 byers_map_w
 
-#########################################################
+########################################################
 ### Ahora vamos a sacar 3 arquetipos para cada grupo ###
-#########################################################
+########################################################
 
 n_arquetipos = 3
 
@@ -458,31 +478,8 @@ head(arch_g1g2,1)
 
 ### Ploteamos a ver si tiene sentido
 
-# Armamos la proyección con las referencias para el mapa
-wm <- map_data("world")
-
-byers_map = ggplot() +
-  geom_polygon(
-    data = wm, aes(x = long, y = lat, group = group),
-    fill = "white", colour = "black", alpha = 0.8, size=0.3
-  ) +
-  scale_y_continuous(
-    limits = c(-90, -30), breaks = seq(-45, -90, by = -10),
-    labels = NULL, expand = c(0, 0)
-  ) +
-  scale_x_continuous(breaks = NULL, expand = c(0, 0)) +
-  theme(panel.background = element_rect(fill = "white"),
-        axis.ticks=element_blank()) +
-  coord_map("ortho", orientation = c(-90, -60, 0), xlim=c(-180,-10), ylim=c(-30,-90)) +
-  labs(x = NULL, y = NULL)
-
-byers_map
-
-length(winter) # Esto es todo invierno, que son 12 años
-length(curvas_2007) # Esto es el caso que tomamos, que tiene 368 trayectorias
-
 # Prueba Manual
-titulo_w = paste0("Probamos - para borrar")
+titulo_w = paste0("Año 2007 - Arquetipos de Core-Clusters")
 
 byers_map_w = byers_map + ggtitle(titulo_w)
 
