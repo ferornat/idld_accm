@@ -663,7 +663,8 @@ toc()
 mapas_path_deep <- Sys.getenv("MAPAS_PATH") # Esto está definido en DATA_PATH
 
 tic()
-for(datos_inv in 1:length(winter)){
+# for(datos_inv in 1:length(winter)){
+for(datos_inv in 5:length(winter)){
   # Estructuramos la data
   anio = datos_inv # 3 es el 2007, 6 es el 2010, 7 es 2011
   
@@ -768,7 +769,7 @@ for(datos_inv in 1:length(winter)){
       
       # Probamos primero sin ruido
       arch <- tryCatch({
-        archetypes(data = df, k = n_arch, verbose = FALSE)
+        suppressWarnings(archetypes(data = df, k = n_arch, verbose = FALSE))
       }, error = function(e) {
         return(NULL)  # NULL si hay un error
       })
@@ -782,7 +783,7 @@ for(datos_inv in 1:length(winter)){
       
       df_noisy <- df + matrix(rnorm(length(df), mean = 0, sd = epsilon), nrow = nrow(df))
       arch <- tryCatch({
-        archetypes(data = df_noisy, k = n_arch, verbose = FALSE)
+        suppressWarnings(archetypes(data = df_noisy, k = n_arch, verbose = FALSE))
       }, error = function(e) {
         return(NULL)  # NULL si hay un error
       })
@@ -835,11 +836,18 @@ for(datos_inv in 1:length(winter)){
   if (is.null(arch_g1)) {
     message("Failed to compute archetypes with n_arch = 3. Retrying with reduced number of archetypes.")
     
-    # Retry with reduced number of archetypes
+    # Retry with 2 archetypes
     arch_g1 <- retry_archetypes(df_struc_g1, n_arch = 2, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
     
     if (is.null(arch_g1)) {
-      stop("Failed to compute archetypes with reduced number of archetypes as well.")
+      message("Failed to compute archetypes with n_arch = 2. Retrying with a single archetype.")
+      
+      # Retry with 1 archetype
+      arch_g1 <- retry_archetypes(df_struc_g1, n_arch = 1, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+      
+      if (is.null(arch_g1)) {
+        stop("Failed to compute archetypes with any number of archetypes.")
+      }
     }
   }
   
@@ -874,11 +882,18 @@ for(datos_inv in 1:length(winter)){
   if (is.null(arch_g2)) {
     message("Failed to compute archetypes with n_arch = 3. Retrying with reduced number of archetypes.")
     
-    # Retry with reduced number of archetypes
+    # Retry with 2 archetypes
     arch_g2 <- retry_archetypes(df_struc_g2, n_arch = 2, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
     
     if (is.null(arch_g2)) {
-      stop("Failed to compute archetypes with reduced number of archetypes as well.")
+      message("Failed to compute archetypes with n_arch = 2. Retrying with a single archetype.")
+      
+      # Retry with 1 archetype
+      arch_g2 <- retry_archetypes(df_struc_g2, n_arch = 1, seed_arch = 123, max_iter = 10, epsilon = 1e-6)
+      
+      if (is.null(arch_g2)) {
+        stop("Failed to compute archetypes with any number of archetypes.")
+      }
     }
   }
   
