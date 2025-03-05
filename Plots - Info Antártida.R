@@ -316,7 +316,7 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   # Clusters 
   for (l in 1:n_clust) {
     curve <- trayectorias_orig[[l]]
-    cluster_label <- paste0("Cluster ", clusters[l])  # "Cluster 1" o "Cluster 2"
+    cluster_label <- paste0("Core Cluster ", clusters[l])  # "Cluster 1" o "Cluster 2"
     curve$group <- factor(cluster_label)  # Asegura que se trata como factor
     
     byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
@@ -326,8 +326,8 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   byers_map_w <- byers_map_w + 
     scale_color_manual(values = c(
       "Menos profundas" = "lightgrey", 
-      "Cluster 1" = "darkgreen", 
-      "Cluster 2" = "darkred"
+      "Core Cluster 1" = "darkgreen", 
+      "Core Cluster 2" = "darkred"
     )) +
     theme(
       plot.title = element_text(size = 40, face = "bold"),
@@ -547,7 +547,7 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   # Arquetipos 
   for (l in 1:n_arc) {
     curve <- trayectorias_g1g2[[l]]
-    cluster_label <- paste0("Cluster ", clusters[l])  # "Cluster 1" o "Cluster 2"
+    cluster_label <- paste0("Arquetipos ", clusters[l])  # "Cluster 1" o "Cluster 2"
     curve$group <- factor(cluster_label)  # Asegura que se trata como factor
     
     byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
@@ -558,8 +558,8 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
     scale_color_manual(values = c(
       "Menos profundas" = "lightgrey",
       "Más profundas" = "darkgrey",
-      "Cluster 1" = "darkgreen", 
-      "Cluster 2" = "darkred"
+      "Arquetipos 1" = "darkgreen", 
+      "Arquetipos 2" = "darkred"
     )) +
     theme(
       plot.title = element_text(size = 40, face = "bold"),
