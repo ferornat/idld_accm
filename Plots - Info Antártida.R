@@ -632,15 +632,15 @@ for (k in anio:anio) { # Es 1:length(winter) en realidad, e hicimos 1:1 para que
   for (i in 1:length(winter[[k]]$curves)) {
     curve <- winter[[k]]$curves[[i]]
     # Asignamos el color en función del cluster
-    curve$group <- ifelse(closest_archetype[i] == 1, "Cluster 1", "Cluster 2")
+    curve$group <- ifelse(closest_archetype[i] == 1, "Cluster Final 1", "Cluster Final 2")
     byers_map_w <- byers_map_w + geom_path(data = curve, aes(x = lon, y = lat, color = group), alpha = 0.5)
   }
   
   # Apply the custom color scale and legend
   byers_map_w <- byers_map_w + 
     scale_color_manual(values = c(
-      "Cluster 1" = "darkgreen", 
-      "Cluster 2" = "darkred"
+      "Cluster Final 1" = "darkgreen", 
+      "Cluster Final 2" = "darkred"
     )) +
     theme(
       plot.title = element_text(size = 40, face = "bold"),
